@@ -1,0 +1,13 @@
+language: go
+
+install:
+  - go get github.com/gourd/service
+  - go get ./...
+
+go:
+  - 1.4
+  - tip
+
+script:
+  - go test -v ./...
+  - cd _example && go generate && go test
