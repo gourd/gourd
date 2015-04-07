@@ -35,7 +35,7 @@ func init() {
 func genService(c *cli.Context) {
 
 	// files to parse
-	fns := make([]string, 0)
+	var fns []string
 	if len(c.Args()) == 0 {
 		// TODO: find all .go in the current folder
 		fmt.Println("Please provide files to parse")
