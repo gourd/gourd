@@ -6,7 +6,6 @@ import (
 
 // representation of a general type spec
 type genTypeSpec struct {
-	Pkg    string
 	Name   string
 	Type   string
 	Fields []fieldSpec

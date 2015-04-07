@@ -68,48 +68,67 @@ func genService(c *cli.Context) {
 	}
 	tn := c.String("type")
 
+	// separated the type names with comma
+	tns := strings.Split(tn, ",")
+
 	// storage
 	var s string
 	s = c.String("storage")
 
-	// output file
-	var o string
-	if c.String("output") == "" {
-		o = strings.ToLower(tn) + "_service.go"
-	} else {
-		o = c.String("output")
-	}
-
 	// read type of type name from given file(s)
-	t, ok := readTypeFile(fns[0], tn)
+	pkg, ts, ok := readTypeFile(fns[0], tns)
 	if !ok {
 		fmt.Printf("Type \"%s\" not found in the provided file(s). Exit.\n", tn)
 		os.Exit(1)
 	}
 
-	// create output file (if not exists)
-	f, err := os.Create(o)
-	defer FormatFile(o)
-	defer f.Close()
-	if err != nil {
-		fmt.Printf("Failed to create output file \"%s\".\n", o)
-		fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-		os.Exit(1)
+	// loop through each type found
+	for _, t := range ts {
+
+		// output file
+		var o string
+		if c.String("output") == "" {
+			o = strings.ToLower(t.Name) + "_service.go"
+		} else {
+			o = c.String("output")
+		}
+
+		// create output file (if not exists)
+		f, err := os.Create(o)
+		defer FormatFile(o)
+		defer f.Close()
+		if err != nil {
+			fmt.Printf("Failed to create output file \"%s\".\n", o)
+			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
+			os.Exit(1)
+		}
+
+		// write the generated output to file
+		err = tpls.New("gen service:"+s).Execute(f, map[string]interface{}{
+			"Pkg":  pkg,
+			"Type": t,
+		})
+		if err != nil {
+			fmt.Printf("Failed to write to file \"%s\".\n", o)
+			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
-	// write the generated output to file
-	err = tpls.New("gen service:"+s).Execute(f, map[string]interface{}{
-		"Type": t,
-	})
-	if err != nil {
-		fmt.Printf("Failed to write to file \"%s\".\n", o)
-		fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-		os.Exit(1)
+}
+
+// test if a string exists in a string slice
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
 	}
+	return false
 }
 
 // read typeSpec from files
-func readTypeFile(inputPath string, tn string) (spec genTypeSpec, ok bool) {
+func readTypeFile(inputPath string, tns []string) (pkg string, specs []genTypeSpec, ok bool) {
 	fset := token.NewFileSet()
 
 	// TODO: get to know what inputPath can be (e.g. dir?)
@@ -119,7 +138,6 @@ func readTypeFile(inputPath string, tn string) (spec genTypeSpec, ok bool) {
 	}
 
 	// read package name
-	var pkg string
 	if f.Name == nil {
 		fmt.Println("Error. Unknown package name. Exit.")
 		os.Exit(1)
@@ -130,12 +148,10 @@ func readTypeFile(inputPath string, tn string) (spec genTypeSpec, ok bool) {
 	// read types name and details
 	for ts := range filterTypeSpec(filterGenDecl(chanDecls(f.Decls))) {
 		pts := parseTypeSpec(ts)
-		if pts.Name == tn {
-			spec = pts
+		if stringInSlice(pts.Name, tns) {
+			specs = append(specs, pts)
 			ok = true
-			break
 		}
 	}
-	spec.Pkg = pkg
 	return
 }

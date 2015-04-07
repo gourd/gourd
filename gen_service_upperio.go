@@ -2,7 +2,7 @@ package main
 
 func init() {
 	tpls.Append("gen service:upperio",
-		`{{ define "package" }}package {{ .Type.Pkg }}{{ end }}`,
+		`{{ define "package" }}package {{ .Pkg }}{{ end }}`,
 		`{{ define "imports" }}"github.com/gourd/service"
 		"upper.io/db"{{ end }}`,
 		`{{ define "code" }}
