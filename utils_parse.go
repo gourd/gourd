@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
+	"go/parser"
+	"go/token"
 )
 
 // representation of a general type spec
@@ -105,6 +108,50 @@ func parseTypeSpec(typeSpec *ast.TypeSpec) (spec pTypeSpec) {
 			}
 			spec.Fields = append(spec.Fields, fspec)
 		}
+	}
+
+	return
+}
+
+// test if a string exists in a string slice
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+// read pTypeSpec of given type names from a file
+func readTypeFile(inputPath string, tns []string) (pkg string, specs []pTypeSpec, err error) {
+	fset := token.NewFileSet()
+
+	// inputPath can only be filename
+	f, err := parser.ParseFile(fset, inputPath, nil, parser.ParseComments)
+	if err != nil {
+		return
+	}
+
+	// read package name
+	if f.Name == nil {
+		err = fmt.Errorf("Unknown package name")
+	} else {
+		pkg = f.Name.Name
+	}
+
+	// read types name and details
+	for ts := range filterTypeSpec(filterGenDecl(chanDecls(f.Decls))) {
+		pts := parseTypeSpec(ts)
+		if stringInSlice(pts.Name, tns) {
+			specs = append(specs, pts)
+		}
+	}
+
+	// see if all types needed are found
+	if len(tns) != len(specs) {
+		// TODO: improve this error message. Be specific on missing type.
+		err = fmt.Errorf("Not all types can be found.")
 	}
 
 	return
