@@ -6,10 +6,24 @@ import (
 	"time"
 )
 
+// Post is for blog post
 type Post struct {
-	Id    int32  `db:"id"`
+
+	// This is Id
+	Id int32 `db:"id"`
+
+	// This is User ID
+	Uid int32 `db:"uid"`
+
+	// title of the post
 	Title string `db:"title" json:"title"`
-	Body  string `db:"body" json:"body"`
-	Size  int64  `db:"size"`
-	Date  time.Time
+
+	// HTML body of the post
+	Body string `db:"body" json:"body"`
+
+	// size in byte of the post
+	Size int64 `db:"size"`
+
+	// date when the post is published
+	Date time.Time
 }
