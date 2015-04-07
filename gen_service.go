@@ -128,7 +128,7 @@ func stringInSlice(a string, list []string) bool {
 }
 
 // read typeSpec from files
-func readTypeFile(inputPath string, tns []string) (pkg string, specs []genTypeSpec, err error) {
+func readTypeFile(inputPath string, tns []string) (pkg string, specs []pTypeSpec, err error) {
 	fset := token.NewFileSet()
 
 	// inputPath can only be filename

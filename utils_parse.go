@@ -5,14 +5,14 @@ import (
 )
 
 // representation of a general type spec
-type genTypeSpec struct {
+type pTypeSpec struct {
 	Name   string
 	Type   string
-	Fields []fieldSpec
+	Fields []pFieldSpec
 }
 
 // representation of a general struct field
-type fieldSpec struct {
+type pFieldSpec struct {
 	Name string
 	Type string
 	Tag  string
@@ -76,8 +76,8 @@ func filterStructType(cin <-chan *ast.TypeSpec) <-chan *ast.StructType {
 	return cout
 }
 
-// parse a type spec into genTypeSpec
-func parseTypeSpec(typeSpec *ast.TypeSpec) (spec genTypeSpec) {
+// parse a type spec into pTypeSpec
+func parseTypeSpec(typeSpec *ast.TypeSpec) (spec pTypeSpec) {
 
 	// name of the type
 	if typeSpec.Name != nil {
@@ -90,7 +90,7 @@ func parseTypeSpec(typeSpec *ast.TypeSpec) (spec genTypeSpec) {
 
 		// see FieldList, Field, Tag in package "os/ast"
 		for _, f := range structType.Fields.List {
-			fspec := fieldSpec{}
+			fspec := pFieldSpec{}
 			if len(f.Names) > 0 {
 				fspec.Name = f.Names[0].Name
 			}
