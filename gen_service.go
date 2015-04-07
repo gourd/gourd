@@ -60,14 +60,18 @@ func genService(c *cli.Context) {
 	}
 
 	// read type of type name from given file(s)
-	t := readTypeFile(fns[0], tn)
+	t, ok := readTypeFile(fns[0], tn)
+	if !ok {
+		fmt.Printf("Type \"%s\" not found in the provided file(s). Exit.\n", tn)
+		os.Exit(1)
+	}
 
 	// dummy output
 	fmt.Printf("t: %#v ==> output: %s\n", t, o)
 }
 
 // read typeSpec from files
-func readTypeFile(inputPath string, tn string) (spec genTypeSpec) {
+func readTypeFile(inputPath string, tn string) (spec genTypeSpec, ok bool) {
 	fset := token.NewFileSet()
 
 	// TODO: get to know what inputPath can be (e.g. dir?)
@@ -90,6 +94,7 @@ func readTypeFile(inputPath string, tn string) (spec genTypeSpec) {
 		pts := parseTypeSpec(ts)
 		if pts.Name == tn {
 			spec = pts
+			ok = true
 			break
 		}
 	}
