@@ -9,16 +9,20 @@ import (
 
 // representation of a general type spec
 type pTypeSpec struct {
-	Name   string
-	Type   string
-	Fields []pFieldSpec
+	Name    string
+	Type    string
+	Fields  []pFieldSpec
+	Doc     string
+	Comment string
 }
 
 // representation of a general struct field
 type pFieldSpec struct {
-	Name string
-	Type string
-	Tag  string
+	Name    string
+	Type    string
+	Tag     string
+	Doc     string
+	Comment string
 }
 
 // channel the slice of ast.Decl out for filtering
@@ -57,6 +61,12 @@ func filterTypeSpec(cin <-chan *ast.GenDecl) <-chan *ast.TypeSpec {
 			//       another pipeline function
 			for _, spec := range decl.Specs {
 				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+					if typeSpec.Doc == nil {
+						// Don't know why the typeSpec doesn't carry
+						// the doc of the parent declaration.
+						// Pass it through.
+						typeSpec.Doc = decl.Doc
+					}
 					cout <- typeSpec
 				}
 			}
@@ -87,6 +97,10 @@ func parseTypeSpec(typeSpec *ast.TypeSpec) (spec pTypeSpec) {
 		spec.Name = typeSpec.Name.Name
 	}
 
+	// read comment and docs
+	spec.Doc = commentGroupStr(typeSpec.Doc)
+	spec.Comment = commentGroupStr(typeSpec.Comment)
+
 	// if this is a struct
 	if structType, ok := typeSpec.Type.(*ast.StructType); ok {
 		spec.Type = "struct"
@@ -106,6 +120,8 @@ func parseTypeSpec(typeSpec *ast.TypeSpec) (spec pTypeSpec) {
 					fspec.Type = id.Name
 				}
 			}
+			fspec.Doc = commentGroupStr(f.Doc)
+			fspec.Comment = commentGroupStr(f.Comment)
 			spec.Fields = append(spec.Fields, fspec)
 		}
 	}
@@ -153,6 +169,26 @@ func readTypeFile(inputPath string, tns []string) (pkg string, specs []pTypeSpec
 		// TODO: improve this error message. Be specific on missing type.
 		err = fmt.Errorf("Not all types can be found.")
 	}
+
+	return
+}
+
+// read comment group to string
+func commentGroupStr(cmt *ast.CommentGroup) (str string) {
+
+	// test if empty
+	if cmt == nil || cmt.List == nil || len(cmt.List) == 0 {
+		return ""
+	}
+
+	// append all strings
+	for _, c := range cmt.List {
+		if c != nil {
+			str += c.Text
+		}
+	}
+
+	// TODO: remove comment signs "//", "/*", "*/" and etc
 
 	return
 }
