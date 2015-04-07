@@ -76,9 +76,9 @@ func genService(c *cli.Context) {
 	s = c.String("storage")
 
 	// read type of type name from given file(s)
-	pkg, ts, ok := readTypeFile(fns[0], tns)
-	if !ok {
-		fmt.Printf("Type \"%s\" not found in the provided file(s). Exit.\n", tn)
+	pkg, ts, err := readTypeFile(fns[0], tns)
+	if err != nil {
+		fmt.Printf("Error parsing \"%s\". Error: %s. Exit.", fns[0], err.Error())
 		os.Exit(1)
 	}
 
@@ -128,19 +128,18 @@ func stringInSlice(a string, list []string) bool {
 }
 
 // read typeSpec from files
-func readTypeFile(inputPath string, tns []string) (pkg string, specs []genTypeSpec, ok bool) {
+func readTypeFile(inputPath string, tns []string) (pkg string, specs []genTypeSpec, err error) {
 	fset := token.NewFileSet()
 
-	// TODO: get to know what inputPath can be (e.g. dir?)
+	// inputPath can only be filename
 	f, err := parser.ParseFile(fset, inputPath, nil, parser.ParseComments)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	// read package name
 	if f.Name == nil {
-		fmt.Println("Error. Unknown package name. Exit.")
-		os.Exit(1)
+		err = fmt.Errorf("Unknown package name")
 	} else {
 		pkg = f.Name.Name
 	}
@@ -150,8 +149,14 @@ func readTypeFile(inputPath string, tns []string) (pkg string, specs []genTypeSp
 		pts := parseTypeSpec(ts)
 		if stringInSlice(pts.Name, tns) {
 			specs = append(specs, pts)
-			ok = true
 		}
 	}
+
+	// see if all types needed are found
+	if len(tns) != len(specs) {
+		// TODO: improve this error message. Be specific on missing type.
+		err = fmt.Errorf("Not all types can be found.")
+	}
+
 	return
 }
