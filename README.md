@@ -4,6 +4,8 @@ gourd CLI tool
 This repository is for the code generation CLI tool `gourd`. This
 is part of *Gourd* framework.
 
+![Travis last test result on master](https://api.travis-ci.org/gourd/gourd.svg "Travis last test result on master")
+
 Gourd
 -----
 
