@@ -66,6 +66,12 @@ func (t *{{ .Type.Name }}Service) Len(pl service.EntityListPtr) int64 {
 	return int64(len(*el))
 }
 
+// Coll return the raw upper.io collection
+func (t *{{ .Type.Name }}Service) Coll() (db.Collection, error) {
+	// get raw collection
+	return t.Db.Collection("{{.Coll}}")
+}
+
 {{ end }}`)
 	tpls.AddDeps("gen service:upperio", "gen:general")
 }

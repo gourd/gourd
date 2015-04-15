@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -23,6 +24,11 @@ func init() {
 				Name:  "storage, s",
 				Value: "upperio",
 				Usage: "the storage type behind the service",
+			},
+			cli.StringFlag{
+				Name:  "coll, c",
+				Value: "",
+				Usage: "name of storage collection (i.e. MySQL table name)",
 			},
 			cli.StringFlag{
 				Name:  "output, o",
@@ -73,6 +79,14 @@ func genService(c *cli.Context) {
 	var s string
 	s = c.String("storage")
 
+	// collection name
+	var cn string
+	cn = c.String("coll")
+	if cn == "" {
+		r := regexp.MustCompile("[A-Z]+")
+		cn = strings.ToLower(r.ReplaceAllString(tn, "_$0"))
+	}
+
 	// read type of type name from given file(s)
 	pkg, ts, err := readTypeFile(fns[0], tns)
 	if err != nil {
@@ -105,6 +119,7 @@ func genService(c *cli.Context) {
 		err = tpls.New("gen service:"+s).Execute(f, map[string]interface{}{
 			"Pkg":  pkg,
 			"Type": t,
+			"Coll": cn,
 		})
 		if err != nil {
 			fmt.Printf("Failed to write to file \"%s\".\n", o)
