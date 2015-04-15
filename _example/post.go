@@ -7,6 +7,11 @@ import (
 )
 
 // Post is for blog post
+// This is a multiple line comment
+/**
+ * This is another multiple line comment
+ * Just another type
+ */
 type Post struct {
 
 	// This is Id
