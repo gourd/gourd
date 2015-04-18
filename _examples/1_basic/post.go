@@ -1,6 +1,6 @@
 //go:generate gourd gen service -type=Post -coll=posts $GOFILE
 
-package gourd_example
+package example1
 
 import (
 	"time"

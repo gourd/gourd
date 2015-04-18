@@ -1,4 +1,4 @@
-package gourd_example
+package example1
 
 import (
 	"github.com/gourd/service"
