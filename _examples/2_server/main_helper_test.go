@@ -6,15 +6,15 @@ import (
 )
 
 // could be used repeatedly for different unit test
-func getTestServer() (ts *httptest.Server) {
-	s := getServer()
+func gourdTestServer() (ts *httptest.Server) {
+	s := gourdServer()
 	ts = httptest.NewServer(s)
 	return
 }
 
 // testing the gourd generated server
 func TestMain(t *testing.T) {
-	ts := getTestServer()
+	ts := gourdTestServer()
 	defer ts.Close()
 	//do something with the test server
 }

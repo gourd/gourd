@@ -1,11 +1,17 @@
 package main
 
 import (
-	"github.com/gourd/gorest"
+	"github.com/codegangsta/negroni"
+	"github.com/gorilla/pat"
 	"github.com/gourd/service"
-	"net/http"
 	"upper.io/db"
+	"upper.io/db/sqlite"
 )
+
+// dummy rest binder
+func Rest(r *pat.Router, p string, s service.Service) {
+	// placeholder for now
+}
 
 // getServer
 //
@@ -14,10 +20,15 @@ import (
 //
 // Should also be a http.Handler that
 // cound be tested by wrapping httptest sevrer
-func getServer() *negroni.Negroni {
+func gourdServer() (n *negroni.Negroni) {
 
 	// define db
-	//db := db.Open(sqlite.Adapter, sqlite.ConnectionURL{Database: `/path/to/example.db`,})
+	db, err := db.Open(sqlite.Adapter, sqlite.ConnectionURL{
+		Database: `./data/sqlite3.db`,
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	// create router specific / independent middleware
 	//ep := &EncoderPrvdr{}
@@ -28,19 +39,19 @@ func getServer() *negroni.Negroni {
 	//ap.UseServices(ClientService{db}, AuthService{db}, AccessService{db})
 
 	// create router of the specific type
-	//r := pat.New()
+	r := pat.New()
 
 	// create negroni middleware handler
 	// with middlewares
+	n = negroni.New()
 	//n := negroni.New(
 	//	negroni.Wrap(ep),
 	//	negroni.Wrap(cp),
 	//	negroni.Wrap(ap.Mid()))
 
 	// add services rest to router
-	//rt := "gorilla/pat"
-	//gorest.Rest(rt, r, "/api/posts", PostService{db})
-	//gorest.Rest(rt, r, "/api/comments", CommentService{db})
+	Rest(r, "/api/posts", &PostService{db})
+	Rest(r, "/api/comments", &CommentService{db})
 
 	// add oauth2 endpoints
 	//AddOAuth2(r, "/oauth", ap)
@@ -48,6 +59,7 @@ func getServer() *negroni.Negroni {
 	// use router in negroni
 	//n.UseHandler(secureMux)
 
+	return
 }
 
 // gourdMain
@@ -55,7 +67,7 @@ func getServer() *negroni.Negroni {
 // gourd generated main
 // feel free to copy the code and change
 func gourdMain() {
-	s := getServer()
+	s := gourdServer()
 	if s != nil {
 		s.Run(":8080") // negroni specific
 	}

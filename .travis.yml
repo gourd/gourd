@@ -3,7 +3,13 @@ language: go
 install:
   - go get github.com/gourd/service
   - go get github.com/gourd/goparser
+  - go get github.com/gorilla/pat
+  - go get github.com/codegangsta/negroni
+  - go get github.com/mattn/go-sqlite3
+  - go get menteslibres.net/gosexy/to
+  - go get upper.io/cache
   - go get upper.io/db
+  - go get upper.io/db/sqlite
   - go get ./...
 
 go:
@@ -12,4 +18,8 @@ go:
 
 script:
   - go test -v ./...
-  - cd _examples/1_basic && go generate && go test
+  - cd _examples/1_basic
+  - go generate && go test
+  - cd ../..
+  - cd _examples/2_server
+  - go generate post.go &&  go generate comment.go && go test
