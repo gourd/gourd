@@ -47,7 +47,8 @@ func (r *ProtoPosts) Match(a interface{}, b interface{}) (err error) {
 	real_a := a.(Post)
 	real_b := b.(Post)
 
-	if real_a.Id != real_b.Id {
+	if real_a.Id != real_b.Id && real_a.Id != 0 && real_b.Id != 0 {
+		// if either ID is 0, do not check id match
 		err = fmt.Errorf("Id not match")
 	} else if real_a.Uid != real_b.Uid {
 		err = fmt.Errorf("Uid not match")
