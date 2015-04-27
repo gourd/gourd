@@ -3,7 +3,8 @@ package main
 func init() {
 	tpls.Append("gen service:upperio",
 		`{{ define "package" }}package {{ .Pkg }}{{ end }}`,
-		`{{ define "imports" }}"github.com/gourd/service"
+		`{{ define "imports" }}"net/http"
+		"github.com/gourd/service"
 		"upper.io/db"{{ end }}`,
 		`{{ define "code" }}
 
@@ -156,7 +157,9 @@ func (s *{{ .Type.Name }}Service) Len(pl service.EntityListPtr) int64 {
 func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 	// get raw collection
 	coll, err = s.Db.Collection("{{.Coll}}")
-	err = service.Errorf(500, err.Error())
+	if err != nil {
+		err = service.Errorf(http.StatusInternalServerError, err.Error())
+	}
 	return 
 }
 
