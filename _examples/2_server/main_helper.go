@@ -1,16 +1,62 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/service"
+	"log"
+	"net/http"
 	"upper.io/db"
 	"upper.io/db/sqlite"
 )
 
 // dummy rest binder
-func Rest(r *pat.Router, p string, s service.Service) {
-	// placeholder for now
+func Rest(r *pat.Router, p string, ep string, s service.Service) {
+
+	log.Printf("REST path: %s", p)
+
+	r.Post(p, func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		// allocate entity
+		e := s.AllocEntity()
+
+		// assign encoder and decoder
+		respEnc := json.NewEncoder(w)
+		reqtDec := json.NewDecoder(r.Body)
+
+		// decode request
+		err = reqtDec.Decode(e)
+		if err != nil {
+			log.Printf("Error JSON Unmarshal: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    400,
+				"message": "Cannot decode request",
+			})
+			return
+		}
+
+		// create entity
+		err = s.Create(nil, e)
+		if err != nil {
+			log.Printf("Error Creating Post: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    400,
+				"message": "Failed to create entity",
+			})
+			return
+		}
+
+		// encode response
+		respEnc.Encode(map[string]interface{}{
+			"status": "success",
+			"code":   200,
+			"posts":  []interface{}{e},
+		})
+	})
 }
 
 // getServer
@@ -50,14 +96,14 @@ func gourdServer() (n *negroni.Negroni) {
 	//	negroni.Wrap(ap.Mid()))
 
 	// add services rest to router
-	Rest(r, "/api/posts", &PostService{db})
-	Rest(r, "/api/comments", &CommentService{db})
+	Rest(r, "/api/posts", "/api/posts/{id}", &PostService{db})
+	Rest(r, "/api/comments", "/api/comments/{id}", &CommentService{db})
 
 	// add oauth2 endpoints
 	//AddOAuth2(r, "/oauth", ap)
 
 	// use router in negroni
-	//n.UseHandler(secureMux)
+	n.UseHandler(r)
 
 	return
 }

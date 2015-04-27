@@ -10,6 +10,7 @@ install:
   - go get upper.io/cache
   - go get upper.io/db
   - go get upper.io/db/sqlite
+  - go get github.com/yookoala/restit
   - go get ./...
 
 go:
