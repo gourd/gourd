@@ -12,10 +12,15 @@ import (
 )
 
 // dummy rest binder
-func Rest(r *pat.Router, p string, ep string, s service.Service) {
+func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
+
+	// define paths
+	p := base + "/" + nounp
+	ep := base + "/" + noun + "/{id}"
 
 	log.Printf("REST path: %s", p)
 
+	// Create
 	r.Post(p, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
@@ -32,7 +37,7 @@ func Rest(r *pat.Router, p string, ep string, s service.Service) {
 			log.Printf("Error JSON Unmarshal: ", err)
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
-				"code":    400,
+				"code":    http.StatusBadRequest,
 				"message": "Cannot decode request",
 			})
 			return
@@ -44,7 +49,7 @@ func Rest(r *pat.Router, p string, ep string, s service.Service) {
 			log.Printf("Error Creating Post: ", err)
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
-				"code":    400,
+				"code":    http.StatusBadRequest,
 				"message": "Failed to create entity",
 			})
 			return
@@ -53,10 +58,48 @@ func Rest(r *pat.Router, p string, ep string, s service.Service) {
 		// encode response
 		respEnc.Encode(map[string]interface{}{
 			"status": "success",
-			"code":   200,
+			"code":   http.StatusOK,
 			"posts":  []interface{}{e},
 		})
 	})
+
+	// Retrieve single
+	r.Get(ep, func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		// allocate memory for variables
+		el := s.AllocEntityList()
+
+		// assign encoder and decoder
+		respEnc := json.NewEncoder(w)
+
+		// retrieve
+		id := r.URL.Query().Get(":id") // will change
+		cond := service.NewConds().Add("id", id)
+		err = s.Search(cond, el)
+		if err != nil {
+			log.Printf("Error Creating Post: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusBadRequest,
+				"message": "Failed to create entity",
+			})
+			return
+		}
+
+		// encode response
+		respEnc.Encode(map[string]interface{}{
+			"status": "success",
+			"code":   http.StatusOK,
+			"posts":  el,
+		})
+	})
+
+	// TODO: Retrieve list
+
+	// TODO: Update
+
+	// TODO: Delete
 }
 
 // getServer
@@ -96,8 +139,8 @@ func gourdServer() (n *negroni.Negroni) {
 	//	negroni.Wrap(ap.Mid()))
 
 	// add services rest to router
-	Rest(r, "/api/posts", "/api/posts/{id}", &PostService{db})
-	Rest(r, "/api/comments", "/api/comments/{id}", &CommentService{db})
+	Rest(r, "/api", "post", "posts", &PostService{db})
+	Rest(r, "/api", "comment", "comments", &CommentService{db})
 
 	// add oauth2 endpoints
 	//AddOAuth2(r, "/oauth", ap)

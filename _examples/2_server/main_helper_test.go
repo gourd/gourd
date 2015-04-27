@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/yookoala/restit"
-	"log"
 	"math/rand"
 	"net/http/httptest"
 	"testing"
@@ -37,17 +36,30 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 	p1 := dummyNewPost()
 
 	// REST API
-	api := restit.Rest("Post", ts.URL+"/api/posts")
+	posts := restit.Rest("Post", ts.URL+"/api/posts")
+	post := restit.Rest("Post", ts.URL+"/api/post")
 
 	// test create
-	t1 := api.Create(&p1).
+	t1 := posts.Create(&p1).
 		WithResponseAs(proto).
 		ExpectResultCount(1).
 		ExpectResultsValid().
 		ExpectResultNth(0, p1)
-	res, err := t1.Run()
-	log.Printf("response: %#v", proto)
-	log.Printf("response raw: %#v", res.Response.RawText())
+	_, err := t1.Run()
+	p2p, err := proto.GetNth(0)
+	p2 := p2p.(Post) // created post
+
+	// test retrieve single
+	t2 := post.Retrieve(fmt.Sprintf("%d", p2.Id)).
+		WithResponseAs(proto).
+		ExpectResultCountNot(0)
+	_, err = t2.Run()
+
+	// TODO: test retrieve list, expecte to have non-zero count
+	// TODO: test retrieve list with dummy title
+
+	// TODO: test update
+	// TODO: test delete
 
 	if err != nil {
 		t.Error(err.Error())
