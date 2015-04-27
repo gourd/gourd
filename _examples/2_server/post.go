@@ -15,10 +15,10 @@ import (
 type Post struct {
 
 	// This is Id
-	Id int32 `db:"id"`
+	Id int32 `db:"id,omitempty" json:"id"`
 
 	// This is User ID
-	Uid int32 `db:"uid"`
+	Uid int32 `db:"uid" json:"uid"`
 
 	// title of the post
 	Title string `db:"title" json:"title"`
@@ -27,8 +27,8 @@ type Post struct {
 	Body string `db:"body" json:"body"`
 
 	// size in byte of the post
-	Size int64 `db:"size"`
+	Size int64 `db:"size" json:"size"`
 
 	// date when the post is published
-	Date time.Time
+	Date time.Time `db:"date" json:"date"`
 }
