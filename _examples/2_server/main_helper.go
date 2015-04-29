@@ -78,28 +78,118 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		cond := service.NewConds().Add("id", id)
 		err = s.Search(cond, el)
 		if err != nil {
-			log.Printf("Error Creating Post: ", err)
+			log.Printf("Error searching Post: ", err)
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
-				"message": "Failed to create entity",
+				"message": "Failed to find entity",
 			})
 			return
 		}
 
 		// encode response
-		respEnc.Encode(map[string]interface{}{
-			"status": "success",
-			"code":   http.StatusOK,
-			"posts":  el,
-		})
+		pl := el.(*[]Post)
+		if len(*pl) == 0 {
+			respEnc.Encode(map[string]interface{}{
+				"status": "error",
+				"code":   http.StatusNotFound,
+			})
+		} else {
+			respEnc.Encode(map[string]interface{}{
+				"status": "success",
+				"code":   http.StatusOK,
+				"posts":  el,
+			})
+		}
 	})
 
 	// TODO: Retrieve list
 
-	// TODO: Update
+	// Update
+	r.Put(ep, func(w http.ResponseWriter, r *http.Request) {
+		var err error
 
-	// TODO: Delete
+		// allocate memory for variables
+		e := s.AllocEntity()
+		el := s.AllocEntityList()
+
+		// assign encoder and decoder
+		respEnc := json.NewEncoder(w)
+		reqtDec := json.NewDecoder(r.Body)
+
+		// decode request
+		err = reqtDec.Decode(e)
+		if err != nil {
+			log.Printf("Error JSON Unmarshal: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusBadRequest,
+				"message": "Cannot decode request",
+			})
+			return
+		}
+
+		// find the content of the id
+		id := r.URL.Query().Get(":id")
+		cond := service.NewConds().Add("id", id)
+		err = s.Search(cond, el)
+		if err != nil {
+			log.Printf("Error searching Post: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusBadRequest,
+				"message": "Failed to find entity",
+			})
+			return
+		}
+
+		// update entity
+		s.Update(cond, e)
+
+		// encode response
+		respEnc.Encode(map[string]interface{}{
+			"status": "success",
+			"code":   http.StatusOK,
+			"post":   e,
+		})
+	})
+
+	// Delete
+	r.Delete(ep, func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		// allocate memory for variables
+		e := s.AllocEntity()
+		el := s.AllocEntityList()
+
+		// assign encoder and decoder
+		respEnc := json.NewEncoder(w)
+
+		// find the content of the id
+		id := r.URL.Query().Get(":id")
+		cond := service.NewConds().Add("id", id)
+		err = s.Search(cond, el)
+		if err != nil {
+			log.Printf("Error searching Post: ", err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusBadRequest,
+				"message": "Failed to find entity",
+			})
+			return
+		}
+
+		// delete entity
+		s.Delete(cond)
+
+		// encode response
+		respEnc.Encode(map[string]interface{}{
+			"status": "success",
+			"code":   http.StatusOK,
+			"post":   e,
+		})
+	})
+
 }
 
 // getServer

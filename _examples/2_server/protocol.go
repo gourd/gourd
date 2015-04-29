@@ -17,7 +17,8 @@ type ProtoPosts struct {
 	Status string `json:"status"`
 	Code   int    `json:"code"`
 	Msg    string `json:"message,omitempty"`
-	Posts  []Post `json:"posts"`
+	Posts  []Post `json:"posts,omitempty"`
+	Post   Post   `json:"post,omitempty"`
 }
 
 func (r *ProtoPosts) Count() int {
@@ -58,7 +59,7 @@ func (r *ProtoPosts) Match(a interface{}, b interface{}) (err error) {
 		err = fmt.Errorf("Body not match")
 	} else if real_a.Size != real_b.Size {
 		err = fmt.Errorf("Size not match")
-	} else if !real_a.Date.Equal(real_b.Date) {
+	} else if real_a.Date.Unix() != real_b.Date.Unix() {
 		err = fmt.Errorf("Date not match")
 	}
 

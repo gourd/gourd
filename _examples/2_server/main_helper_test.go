@@ -54,16 +54,48 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 		WithResponseAs(proto).
 		ExpectResultCountNot(0)
 	_, err = t2.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
 
 	// TODO: test retrieve list, expecte to have non-zero count
 	// TODO: test retrieve list with dummy title
 
-	// TODO: test update
-	// TODO: test delete
-
+	// test update, then retrieve single to compare
+	p3 := dummyNewPost()
+	p3.Id = p2.Id
+	t3 := post.Update(fmt.Sprintf("%d", p3.Id), p3).
+		WithResponseAs(proto).
+		ExpectStatus(200)
+	_, err = t3.Run()
 	if err != nil {
 		t.Error(err.Error())
 	}
+	t4 := post.Retrieve(fmt.Sprintf("%d", p3.Id)).
+		WithResponseAs(proto).
+		ExpectStatus(200). // Success
+		ExpectResultCount(1).
+		ExpectResultNth(0, p3)
+	_, err = t4.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// test delete
+	t5 := post.Delete(fmt.Sprintf("%d", p3.Id)).
+		WithResponseAs(proto).
+		ExpectStatus(200)
+	_, err = t5.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	t6 := post.Retrieve(fmt.Sprintf("%d", p3.Id)).
+		WithResponseAs(proto) // Not found anymore
+	_, err = t6.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
 }
 
 // testing the gourd generated server
