@@ -14,15 +14,19 @@ type ProtoCommon struct {
 
 // ProtoPosts represtnts protocol to communicate Posts
 type ProtoPosts struct {
-	Status string `json:"status"`
-	Code   int    `json:"code"`
-	Msg    string `json:"message,omitempty"`
-	Posts  []Post `json:"posts,omitempty"`
-	Post   Post   `json:"post,omitempty"`
+	Status string  `json:"status"`
+	Code   int     `json:"code"`
+	Msg    string  `json:"message,omitempty"`
+	Posts  *[]Post `json:"posts,omitempty"`
+	Post   *Post   `json:"post,omitempty"`
 }
 
 func (r *ProtoPosts) Count() int {
-	return len(r.Posts)
+	if r.Posts == nil {
+		return 0
+	}
+	ps := r.Posts
+	return len(*ps)
 }
 
 func (r *ProtoPosts) NthValid(n int) (err error) {
@@ -38,7 +42,8 @@ func (r *ProtoPosts) NthValid(n int) (err error) {
 
 func (r *ProtoPosts) GetNth(n int) (item interface{}, err error) {
 	// return the nth item
-	item = r.Posts[n]
+	ps := r.Posts
+	item = (*ps)[n]
 	return
 }
 
@@ -68,5 +73,6 @@ func (r *ProtoPosts) Match(a interface{}, b interface{}) (err error) {
 
 func (r *ProtoPosts) Reset() {
 	r.Status = ""
-	r.Posts = make([]Post, 0)
+	ps := make([]Post, 0)
+	r.Posts = &ps
 }
