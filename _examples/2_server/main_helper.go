@@ -11,12 +11,44 @@ import (
 	"upper.io/db/sqlite"
 )
 
+// generic decoder type
+type Decoder interface {
+	Decode(v interface{}) error
+}
+
+// generic encoder type
+type Encoder interface {
+	Encode(v interface{}) error
+}
+
 // dummy rest binder
 func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 
 	// define paths
 	p := base + "/" + nounp
 	ep := base + "/" + noun + "/{id}"
+
+	// way to identify the key condition (for update, retrieve and delete)
+	getKeyCond := func(r *http.Request) (cond service.Conds) {
+		// TODO: generate the content of this function
+		//       dynamically with gourd
+		id := r.URL.Query().Get(":id") // will change
+		return service.NewConds().Add("id", id)
+	}
+
+	// get request decoder
+	getReqtDec := func(r *http.Request) Decoder {
+		// TODO: get decoder according to request header
+		//       or by middleware
+		return json.NewDecoder(r.Body)
+	}
+
+	// get response encoder
+	getRespEnc := func(w http.ResponseWriter, r *http.Request) Encoder {
+		// TODO: get encoder according to request
+		//       or by middleware
+		return json.NewEncoder(w)
+	}
 
 	log.Printf("REST path: %s", p)
 
@@ -28,13 +60,13 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		e := s.AllocEntity()
 
 		// assign encoder and decoder
-		respEnc := json.NewEncoder(w)
-		reqtDec := json.NewDecoder(r.Body)
+		reqtDec := getReqtDec(r)
+		respEnc := getRespEnc(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
 		if err != nil {
-			log.Printf("Error JSON Unmarshal: ", err)
+			log.Printf("Error JSON Unmarshal: %s", err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
@@ -46,7 +78,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		// create entity
 		err = s.Create(nil, e)
 		if err != nil {
-			log.Printf("Error Creating Post: ", err)
+			log.Printf("Error Creating %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
@@ -71,14 +103,13 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := json.NewEncoder(w)
+		respEnc := getRespEnc(w, r)
 
 		// retrieve
-		id := r.URL.Query().Get(":id") // will change
-		cond := service.NewConds().Add("id", id)
+		cond := getKeyCond(r)
 		err = s.Search(cond, el)
 		if err != nil {
-			log.Printf("Error searching Post: ", err)
+			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
@@ -88,8 +119,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		}
 
 		// encode response
-		pl := el.(*[]Post)
-		if len(*pl) == 0 {
+		if s.Len(el) == 0 {
 			respEnc.Encode(map[string]interface{}{
 				"status": "error",
 				"code":   http.StatusNotFound,
@@ -114,13 +144,13 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := json.NewEncoder(w)
-		reqtDec := json.NewDecoder(r.Body)
+		reqtDec := getReqtDec(r)
+		respEnc := getRespEnc(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
 		if err != nil {
-			log.Printf("Error JSON Unmarshal: ", err)
+			log.Printf("Error JSON Unmarshal: %s", err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
@@ -130,11 +160,10 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		}
 
 		// find the content of the id
-		id := r.URL.Query().Get(":id")
-		cond := service.NewConds().Add("id", id)
+		cond := getKeyCond(r)
 		err = s.Search(cond, el)
 		if err != nil {
-			log.Printf("Error searching Post: ", err)
+			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
@@ -163,14 +192,13 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := json.NewEncoder(w)
+		respEnc := getRespEnc(w, r)
 
 		// find the content of the id
-		id := r.URL.Query().Get(":id")
-		cond := service.NewConds().Add("id", id)
+		cond := getKeyCond(r)
 		err = s.Search(cond, el)
 		if err != nil {
-			log.Printf("Error searching Post: ", err)
+			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
 				"code":    http.StatusBadRequest,
