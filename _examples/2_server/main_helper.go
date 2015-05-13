@@ -59,7 +59,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		respEnc.Encode(map[string]interface{}{
 			"status": "success",
 			"code":   http.StatusOK,
-			"posts":  []interface{}{e},
+			nounp:    []interface{}{e},
 		})
 	})
 
@@ -98,7 +98,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 			respEnc.Encode(map[string]interface{}{
 				"status": "success",
 				"code":   http.StatusOK,
-				"posts":  el,
+				nounp:    el,
 			})
 		}
 	})
@@ -150,7 +150,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		respEnc.Encode(map[string]interface{}{
 			"status": "success",
 			"code":   http.StatusOK,
-			"post":   e,
+			noun:     e,
 		})
 	})
 
@@ -186,7 +186,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		respEnc.Encode(map[string]interface{}{
 			"status": "success",
 			"code":   http.StatusOK,
-			"post":   e,
+			noun:     e,
 		})
 	})
 
