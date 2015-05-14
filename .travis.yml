@@ -24,5 +24,4 @@ script:
   - go generate && go test
   - cd ../..
   - cd _examples/2_server
-  - sqlite3 ./data/sqlite3.db < ./data/schema.sqlite3.sql
-  - go generate post.go &&  go generate comment.go && go test
+  - make test
