@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/service"
@@ -10,16 +9,6 @@ import (
 	"upper.io/db"
 	"upper.io/db/sqlite"
 )
-
-// generic decoder type
-type Decoder interface {
-	Decode(v interface{}) error
-}
-
-// generic encoder type
-type Encoder interface {
-	Encode(v interface{}) error
-}
 
 // dummy rest binder
 func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
@@ -36,20 +25,6 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		return service.NewConds().Add("id", id)
 	}
 
-	// get request decoder
-	getReqtDec := func(r *http.Request) Decoder {
-		// TODO: get decoder according to request header
-		//       or by middleware
-		return json.NewDecoder(r.Body)
-	}
-
-	// get response encoder
-	getRespEnc := func(w http.ResponseWriter, r *http.Request) Encoder {
-		// TODO: get encoder according to request
-		//       or by middleware
-		return json.NewEncoder(w)
-	}
-
 	log.Printf("REST path: %s", p)
 
 	// Create
@@ -60,8 +35,8 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		e := s.AllocEntity()
 
 		// assign encoder and decoder
-		reqtDec := getReqtDec(r)
-		respEnc := getRespEnc(w, r)
+		reqtDec := GetReqtDec(r)
+		respEnc := GetRespEnc(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -103,7 +78,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := getRespEnc(w, r)
+		respEnc := GetRespEnc(w, r)
 
 		// retrieve
 		cond := getKeyCond(r)
@@ -144,8 +119,8 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		reqtDec := getReqtDec(r)
-		respEnc := getRespEnc(w, r)
+		reqtDec := GetReqtDec(r)
+		respEnc := GetRespEnc(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -192,7 +167,7 @@ func Rest(r *pat.Router, base, noun, nounp string, s service.Service) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := getRespEnc(w, r)
+		respEnc := GetRespEnc(w, r)
 
 		// find the content of the id
 		cond := getKeyCond(r)
@@ -238,7 +213,7 @@ func gourdServer() (n *negroni.Negroni) {
 	}
 
 	// create router specific / independent middleware
-	//ep := &EncoderPrvdr{}
+	ep := &CodecProvdr{}
 	//cp := &GorillaPatCondPrvdr{}
 	//ap := &OAuth2Prvdr{}
 
@@ -250,7 +225,8 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create negroni middleware handler
 	// with middlewares
-	n = negroni.New()
+	n = negroni.New(
+		negroni.Wrap(ep))
 	//n := negroni.New(
 	//	negroni.Wrap(ep),
 	//	negroni.Wrap(cp),
