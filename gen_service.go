@@ -111,6 +111,8 @@ func genService(c *cli.Context) {
 
 		// write the generated output to file
 		err = tpls.New("gen service:"+s).Execute(f, map[string]interface{}{
+			"Now":  now.Format(TIMEFORMAT),
+			"Ver":  VERSION,
 			"Pkg":  pkg,
 			"Type": t,
 			"Coll": cn,

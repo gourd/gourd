@@ -3,9 +3,14 @@ package main
 import (
 	"github.com/codegangsta/cli"
 	"os"
+	"time"
 )
 
 var app *cli.App
+var now time.Time
+
+const VERSION = "0.1dev"
+const TIMEFORMAT = "2006/01/02 15:04:05 (-0700)"
 
 func init() {
 
@@ -14,10 +19,13 @@ func init() {
 	app.Name = "gourd"
 	app.Usage = "CLI tool to generates code for your API server"
 
+	// define now
+	now = time.Now()
 }
 
 func main() {
 	app.Flags = []cli.Flag{}
+	app.Version = VERSION
 
 	app.Commands = []cli.Command{
 		{

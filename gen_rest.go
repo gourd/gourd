@@ -98,6 +98,8 @@ func genServiceRest(c *cli.Context) {
 
 		// write the generated output to file
 		err = tpls.New("gen rest:"+s).Execute(f, map[string]interface{}{
+			"Now":  now.Format(TIMEFORMAT),
+			"Ver":  VERSION,
 			"Pkg":  pkg,
 			"Type": t,
 		})
