@@ -5,6 +5,7 @@ func init() {
 		`{{ define "package" }}package {{ .Pkg }}{{ end }}`,
 		`{{ define "imports" }}
 	"github.com/gorilla/pat"
+	"github.com/gourd/codec"
 	"github.com/gourd/service"
 	"log"
 	"net/http"
@@ -37,8 +38,8 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 		e := s.AllocEntity()
 
 		// assign encoder and decoder
-		reqtDec := GetReqtDec(r)
-		respEnc := GetRespEnc(w, r)
+		reqtDec, _ := codec.GetDecoderOk(r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -80,7 +81,7 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := GetRespEnc(w, r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// retrieve
 		cond := getKeyCond(r)
@@ -121,8 +122,8 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		reqtDec := GetReqtDec(r)
-		respEnc := GetRespEnc(w, r)
+		reqtDec, _ := codec.GetDecoderOk(r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -169,7 +170,7 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 		el := s.AllocEntityList()
 
 		// assign encoder and decoder
-		respEnc := GetRespEnc(w, r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// find the content of the id
 		cond := getKeyCond(r)

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
+	"github.com/gourd/codec"
 	"upper.io/db"
 	"upper.io/db/sqlite"
 )
@@ -25,7 +26,7 @@ func gourdServer() (n *negroni.Negroni) {
 	}
 
 	// create router specific / independent middleware
-	ep := &CodecProvdr{}
+	ch := &codec.Handler{}
 	//cp := &GorillaPatCondPrvdr{}
 	//ap := &OAuth2Prvdr{}
 
@@ -38,7 +39,7 @@ func gourdServer() (n *negroni.Negroni) {
 	// create negroni middleware handler
 	// with middlewares
 	n = negroni.New(
-		negroni.Wrap(ep))
+		negroni.Wrap(ch))
 	//n := negroni.New(
 	//	negroni.Wrap(ep),
 	//	negroni.Wrap(cp),
