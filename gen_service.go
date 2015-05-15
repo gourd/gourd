@@ -52,6 +52,12 @@ import (
 	`)
 }
 
+func genServiceFn(tn string) string {
+	r1 := regexp.MustCompile("[A-Z]+")
+	r2 := regexp.MustCompile("^\\_")
+	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_service.go"
+}
+
 // generate the service go file
 func genService(c *cli.Context) {
 
@@ -100,7 +106,7 @@ func genService(c *cli.Context) {
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = strings.ToLower(t.Name) + "_service.go"
+			o = genServiceFn(t.Name)
 		} else {
 			o = c.String("output")
 		}
