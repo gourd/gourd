@@ -1,4 +1,5 @@
 //go:generate gourd gen service -type=Comment -coll=comments $GOFILE
+//go:generate gourd gen rest -type=CommentService comment_service.go
 
 package main
 

@@ -12,4 +12,8 @@ prebuild:
 test: build
 	go test
 
-.PHONY: build prebuild test
+clean:
+	rm -f *_service.go
+	rm -f *_service_rest.go
+
+.PHONY: build prebuild test clean
