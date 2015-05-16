@@ -27,10 +27,23 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create router specific / independent middleware
 	ch := &codec.Handler{}
-	as := &OAuth2Storage{}
+	ah := &OAuth2Handler{} // will be handled by another gourd repo
 
-	// provide services to auth provider
-	//as.UseServices(ClientService{db}, AuthService{db}, AccessService{db})
+	// provide services to auth storage
+	// NOTE: these are independent to router
+	//as := &OAuth2Storage{}
+	//as.GetClientFrom(&ClientService{db})
+	//as.GetAuthFrom(&AuthService{db})
+	//as.GetAccessFrom(&AccessService{db})
+
+	// provide storage to osin server
+	// provide osin server to OAuth2Handler
+	//ah.UseOsin(osin.NewServer(cfg, as))
+
+	// provide access handlers to
+	// NOTE: these are independent to router
+	//ah.Handle("edit post", someAccessHandler)
+	//ah.HandleFunc("edit comment", someAccessHandleFunc)
 
 	// create router of the specific type
 	r := pat.New()
@@ -42,14 +55,20 @@ func gourdServer() (n *negroni.Negroni) {
 	cs := &CommentService{db}
 	cs.Rest(r, "/api", "comment", "comments")
 
-	// add oauth2 endpoints
-	//AddOAuth2(r, "/oauth", ap)
+	// add oauth2 endpoints to router
+	// NOTE: this will be generated if needed to be router specific
+	//ah.ServeEndpoints(r, "/oauth")
+
+	// add login form to router
+	// TODO: need a way to inject templates for login form
+	// NOTE: this will be generated if needed to be router specific
+	//ah.ServeLogin(r, "/login")
 
 	// create negroni middleware handler
 	// with middlewares
 	n = negroni.New()
 	n.Use(negroni.Wrap(ch))
-	n.Use(negroni.Wrap(as.ServeScopes()))
+	n.Use(negroni.Wrap(ah.ServeScopes()))
 
 	// use router in negroni
 	n.UseHandler(r)

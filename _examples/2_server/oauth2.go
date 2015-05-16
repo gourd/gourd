@@ -6,10 +6,10 @@ import (
 )
 
 // OAuth2Storage handles storage
-type OAuth2Storage struct {
+type OAuth2Handler struct {
 }
 
-func (o OAuth2Storage) ServeScopes() *ScopesHandler {
+func (o OAuth2Handler) ServeScopes() *ScopesHandler {
 	return &ScopesHandler{}
 }
 
