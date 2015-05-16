@@ -1,3 +1,5 @@
+export PATH := ${PATH}:../../
+
 build: prebuild
 	go generate
 
