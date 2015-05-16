@@ -27,10 +27,10 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create router specific / independent middleware
 	ch := &codec.Handler{}
-	//ap := &OAuth2Prvdr{}
+	as := &OAuth2Storage{}
 
 	// provide services to auth provider
-	//ap.UseServices(ClientService{db}, AuthService{db}, AccessService{db})
+	//as.UseServices(ClientService{db}, AuthService{db}, AccessService{db})
 
 	// create router of the specific type
 	r := pat.New()
@@ -47,9 +47,9 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create negroni middleware handler
 	// with middlewares
-	n = negroni.New(
-		negroni.Wrap(ch))
-	//	negroni.Wrap(ap.Mid()))
+	n = negroni.New()
+	n.Use(negroni.Wrap(ch))
+	n.Use(negroni.Wrap(as.ServeScopes()))
 
 	// use router in negroni
 	n.UseHandler(r)

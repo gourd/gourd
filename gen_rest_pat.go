@@ -28,6 +28,29 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 		return service.NewConds().Add("id", id)
 	}
 
+	// handle permission related issue
+	scopeAllow := func(r *http.Request, respEnc codec.Encoder, act string, info ...interface{}) bool {
+		s, ok := GetScopesOk(r)
+		if !ok {
+			log.Printf("Error loading scopes of current session")
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Server error. Please try again later",
+			})
+			return false
+		} else if err := s.Allow(act, info...); err != nil {
+			log.Printf("Permission denied")
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusForbidden,
+				"message": err.Error(),
+			})
+			return false
+		}
+		return true
+	}
+
 	log.Printf("REST path: %s", p)
 
 	// Create
@@ -50,6 +73,11 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 				"code":    http.StatusBadRequest,
 				"message": "Cannot decode request",
 			})
+			return
+		}
+
+		if !scopeAllow(r, respEnc, "create "+noun, e) {
+			// test access scope fail, do nothing
 			return
 		}
 
@@ -102,6 +130,9 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 				"status": "error",
 				"code":   http.StatusNotFound,
 			})
+		} else if !scopeAllow(r, respEnc, "load "+noun, el) {
+			// test access scope fail, do nothing
+			return
 		} else {
 			respEnc.Encode(map[string]interface{}{
 				"status": "success",
@@ -150,6 +181,11 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 			return
 		}
 
+		if !scopeAllow(r, respEnc, "update "+noun, el) {
+			// test access scope fail, do nothing
+			return
+		}
+
 		// update entity
 		s.Update(cond, e)
 
@@ -182,6 +218,11 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 				"code":    http.StatusBadRequest,
 				"message": "Failed to find entity",
 			})
+			return
+		}
+
+		if !scopeAllow(r, respEnc, "delete "+noun, el) {
+			// test access scope fail, do nothing
 			return
 		}
 
