@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/gourd/goparser"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -44,6 +46,10 @@ func genServiceFn(tn string) string {
 	r1 := regexp.MustCompile("[A-Z]+")
 	r2 := regexp.MustCompile("^\\_")
 	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_service.go"
+}
+
+func genServiceTpl(name string, w io.Writer) {
+
 }
 
 // generate the service go file
@@ -109,12 +115,25 @@ func genService(c *cli.Context) {
 			os.Exit(1)
 		}
 
+		// find the first id field of the type
+		// (there shouldn't be more than 1 at all)
+		var id *goparser.FieldSpec
+		for field := range t.FieldsTagged("db", "id") {
+			id = field
+		}
+		if id == nil {
+			fmt.Printf("Failed to locate db id of the type \"%s\".\n", t.Name)
+			fmt.Printf("Cannot generate without id.\nExit.\n")
+			os.Exit(1)
+		}
+
 		// write the generated output to file
 		err = tpls.New("gen service:"+s).Execute(f, map[string]interface{}{
 			"Now":  now.Format(TIMEFORMAT),
 			"Ver":  VERSION,
 			"Pkg":  pkg,
 			"Type": t,
+			"Id":   id,
 			"Coll": cn,
 		})
 		if err != nil {

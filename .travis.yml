@@ -7,6 +7,7 @@ install:
   - go get github.com/gourd/goparser
   - go get github.com/gorilla/pat
   - go get github.com/codegangsta/negroni
+  - go get github.com/RangelReale/osin
   - go get github.com/mattn/go-sqlite3
   - go get menteslibres.net/gosexy/to
   - go get upper.io/cache

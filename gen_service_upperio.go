@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"github.com/gourd/goparser"
+)
+
 func init() {
 	tpls.Append("gen service:upperio",
 		`{{ define "package" }}package {{ .Pkg }}{{ end }}`,
@@ -37,9 +42,7 @@ func (s *{{ .Type.Name }}Service) Create(
 
 	//TODO: apply the key to the entity
 	e := ep.(*{{.Type.Name}})
-	// TODO: ugly hardcode to pass unit test for now
-	// to be fixed later
-	e.Id = int32(id.(int64))
+	e.Id = {{ .Id.Type }}(id.({{ .Id.DbType }}))
 
 	return
 }
@@ -162,4 +165,45 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 {{ end }}`)
 
 	tpls.AddDeps("gen service:upperio", "gen:general")
+
+	tpls.AddPrep("gen service:upperio", func(in interface{}) (interface{}, error) {
+		var data map[string]interface{}
+		var f interface{}
+		var id *goparser.FieldSpec
+		var ok bool
+
+		if data, ok = in.(map[string]interface{}); !ok {
+			return in, fmt.Errorf("Unable to prepare. Incorrect data provided: %#v", in)
+		}
+
+		if f, ok = data["Id"]; !ok {
+			return in, fmt.Errorf("Unable to prepare. No Id found in given data: %#v",
+				data)
+		}
+
+		if id, ok = f.(*goparser.FieldSpec); !ok {
+			return in, fmt.Errorf("Unable to prepare. Wrong Id type: %#v", f)
+		}
+
+		// determine database return type
+		// case by case
+		dbtype := "int64"
+		if id.Type == "string" {
+			dbtype = "string"
+		}
+
+		// override the field spec
+		data["Id"] = &UpperFieldSpec{
+			id,
+			dbtype,
+		}
+		return data, nil
+
+	})
+
+}
+
+type UpperFieldSpec struct {
+	*goparser.FieldSpec
+	DbType string // type of id returned by upperio
 }

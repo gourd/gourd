@@ -1,4 +1,2 @@
-post_service.go
-post_service_rest.go
-comment_service.go
-comment_service_rest.go
+*_service.go
+*_service_rest.go
