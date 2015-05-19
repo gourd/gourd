@@ -27,14 +27,20 @@ var tpls Templates
 // Templates is a generic text template map
 // with dependency handling
 type Templates struct {
-	Tpls map[string][]string
-	Deps map[string][]string
+	Tpls  map[string][]string
+	Deps  map[string][]string
+	Preps map[string]TemplatePrep
 }
+
+// TemplatePrep is function to be run on data
+// everytime before a template is executed
+type TemplatePrep func(in interface{}) (data interface{}, err error)
 
 // Template is a generic text template
 // with dependency handling
 type Template struct {
 	Tpls     *Templates
+	Prep     TemplatePrep
 	Used     map[string]bool
 	Rendered *template.Template
 }
@@ -50,6 +56,11 @@ func (ts *Templates) MustInit(n string) *Templates {
 	// make sure the tpl map is ready
 	if ts.Deps == nil {
 		ts.Deps = make(map[string][]string)
+	}
+
+	// make sure the prep map is ready
+	if ts.Preps == nil {
+		ts.Preps = make(map[string]TemplatePrep)
 	}
 
 	return ts
@@ -77,6 +88,17 @@ func (ts *Templates) AddDeps(n string, deps ...string) *Templates {
 	return ts
 }
 
+// AddPrep adds a preparation function.
+// The function will be run on the input parameters
+// each time the template of the name is used
+func (ts *Templates) AddPrep(n string, prep TemplatePrep) *Templates {
+	// make sure the tpl map is ready
+	ts.MustInit(n)
+
+	ts.Preps[n] = prep
+	return ts
+}
+
 // New create new template from template map
 func (ts *Templates) New(name string) *Template {
 	// initialize rendered template
@@ -85,6 +107,17 @@ func (ts *Templates) New(name string) *Template {
 		Used:     make(map[string]bool),
 		Rendered: template.New(name),
 	}
+
+	// define preparation function
+	if prep, ok := ts.Preps[name]; ok {
+		t.Prep = prep
+	} else {
+		t.Prep = func(in interface{}) (interface{}, error) {
+			return in, nil
+		}
+	}
+
+	// render the template
 	t.Use(name)
 	return t
 }
@@ -115,6 +148,10 @@ func (t *Template) Use(n string) *Template {
 
 // Execute the rendered template
 func (t *Template) Execute(out io.Writer, data interface{}) error {
+	data, err := t.Prep(data)
+	if err != nil {
+		return err
+	}
 	return t.Rendered.Execute(out, data)
 }
 
