@@ -11,6 +11,31 @@ type OAuth2Storage struct {
 	ClientService service.Service
 	AuthService   service.Service
 	AccessService service.Service
+	UserService   service.Service
+}
+
+// UseClientIn set the ClientService
+func (a *OAuth2Storage) UseClientIn(s service.Service) *OAuth2Storage {
+	a.ClientService = s
+	return a
+}
+
+// UseAuthIn set the AuthService
+func (a *OAuth2Storage) UseAuthIn(s service.Service) *OAuth2Storage {
+	a.AuthService = s
+	return a
+}
+
+// UseAccessIn set the AccessService
+func (a *OAuth2Storage) UseAccessIn(s service.Service) *OAuth2Storage {
+	a.AccessService = s
+	return a
+}
+
+// UseUserIn set the UserService
+func (a *OAuth2Storage) UseUserIn(s service.Service) *OAuth2Storage {
+	a.UserService = s
+	return a
 }
 
 // Clone the storage
@@ -19,6 +44,7 @@ func (a *OAuth2Storage) Clone() (c osin.Storage) {
 		ClientService: a.ClientService,
 		AuthService:   a.AuthService,
 		AccessService: a.AccessService,
+		UserService:   a.UserService,
 	}
 	return
 }

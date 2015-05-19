@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/RangelReale/osin"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
@@ -18,6 +19,8 @@ import (
 func gourdServer() (n *negroni.Negroni) {
 
 	// define db
+	// TODO: change to a new structure allow creating
+	//       database session per connection
 	db, err := db.Open(sqlite.Adapter, sqlite.ConnectionURL{
 		Database: `./data/sqlite3.db`,
 	})
@@ -31,14 +34,27 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// provide services to auth storage
 	// NOTE: these are independent to router
-	//as := &OAuth2Storage{}
-	//as.GetClientFrom(&ClientService{db})
-	//as.GetAuthFrom(&AuthService{db})
-	//as.GetAccessFrom(&AccessService{db})
+	as := &OAuth2Storage{}
+	as.UseClientIn(&ClientService{db})
+	as.UseAuthIn(&AuthorizeDataService{db})
+	as.UseAccessIn(&AccessDataService{db})
+	as.UseUserIn(&UserService{db})
+	ah.UseStorage(as)
 
 	// provide storage to osin server
 	// provide osin server to OAuth2Handler
-	//ah.UseOsin(osin.NewServer(cfg, as))
+	cfg := osin.NewServerConfig()
+	cfg.AllowGetAccessRequest = true
+	cfg.AllowClientSecretInParams = true
+	cfg.AllowedAccessTypes = osin.AllowedAccessType{
+		osin.AUTHORIZATION_CODE,
+		osin.REFRESH_TOKEN,
+	}
+	cfg.AllowedAuthorizeTypes = osin.AllowedAuthorizeType{
+		osin.CODE,
+		osin.TOKEN,
+	}
+	ah.InitOsin(cfg)
 
 	// provide access handlers to
 	// NOTE: these are independent to router
