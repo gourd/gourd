@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/RangelReale/osin"
 	"github.com/gourd/service"
+	"log"
 	"net/http"
 )
 
@@ -64,8 +65,11 @@ func (store *OAuth2Storage) Close() {
 // GetClient loads the client by id (client_id)
 func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
 
+	log.Printf("GetClient %s", id)
+
 	srv, err := store.ClientService(store.r)
 	if err != nil {
+		log.Printf("Unable to get client service")
 		return
 	}
 
@@ -75,8 +79,10 @@ func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
 
 	err = srv.One(conds, e)
 	if err != nil {
+		log.Printf("Failed running One()")
 		return
 	} else if e == nil {
+		log.Printf("Client not found for the id")
 		err = service.Errorf(http.StatusNotFound,
 			"Client not found for the id")
 		return
@@ -88,6 +94,8 @@ func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
 
 // SaveAuthorize saves authorize data.
 func (store *OAuth2Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
+
+	log.Printf("SaveAuthorize %v", d)
 
 	srv, err := store.AuthService(store.r)
 	if err != nil {
@@ -107,6 +115,8 @@ func (store *OAuth2Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (store *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err error) {
+
+	log.Printf("LoadAuthorize %s", code)
 
 	srv, err := store.AuthService(store.r)
 	if err != nil {
@@ -132,6 +142,9 @@ func (store *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, e
 
 // RemoveAuthorize revokes or deletes the authorization code.
 func (store *OAuth2Storage) RemoveAuthorize(code string) (err error) {
+
+	log.Printf("RemoveAuthorize %s", code)
+
 	srv, err := store.AuthService(store.r)
 	if err != nil {
 		return
@@ -146,6 +159,9 @@ func (store *OAuth2Storage) RemoveAuthorize(code string) (err error) {
 // SaveAccess writes AccessData.
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (store *OAuth2Storage) SaveAccess(ad *osin.AccessData) (err error) {
+
+	log.Printf("SaveAccess %v", ad)
+
 	srv, err := store.AccessService(store.r)
 	if err != nil {
 		return
@@ -164,6 +180,8 @@ func (store *OAuth2Storage) SaveAccess(ad *osin.AccessData) (err error) {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (store *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
+
+	log.Printf("Loadaccess %v", token)
 
 	srv, err := store.AccessService(store.r)
 	if err != nil {
@@ -189,6 +207,9 @@ func (store *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err er
 
 // RemoveAccess revokes or deletes an AccessData.
 func (store *OAuth2Storage) RemoveAccess(token string) (err error) {
+
+	log.Printf("RemoveAccess %v", token)
+
 	srv, err := store.AccessService(store.r)
 	if err != nil {
 		return
@@ -204,6 +225,8 @@ func (store *OAuth2Storage) RemoveAccess(token string) (err error) {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (store *OAuth2Storage) LoadRefresh(token string) (d *osin.AccessData, err error) {
+
+	log.Printf("LoadRefresh %v", token)
 
 	srv, err := store.AccessService(store.r)
 	if err != nil {
@@ -229,6 +252,9 @@ func (store *OAuth2Storage) LoadRefresh(token string) (d *osin.AccessData, err e
 
 // RemoveRefresh revokes or deletes refresh AccessData.
 func (store *OAuth2Storage) RemoveRefresh(token string) (err error) {
+
+	log.Printf("RemoveRefresh %v", token)
+
 	srv, err := store.AccessService(store.r)
 	if err != nil {
 		return
