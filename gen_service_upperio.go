@@ -107,7 +107,10 @@ func (s *{{ .Type.Name }}Service) One(
 		err = service.Errorf(404, "Not found")
 		return
 	}
-	ep = (*l)[0]
+
+	// assign the value of given point
+	// to the first retrieved value
+	(*ep.(*{{ .Type.Name }})) = (*l)[0]
 	return nil
 }
 
