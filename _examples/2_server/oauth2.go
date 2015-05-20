@@ -3,12 +3,17 @@ package main
 import (
 	"fmt"
 	"github.com/RangelReale/osin"
-	"github.com/gorilla/pat"
 	"github.com/gourd/service"
 	"log"
 	"net/http"
 	"net/url"
 )
+
+// OAuth2Endpoints contains http handler func of different endpoints
+type OAuth2Endpoints struct {
+	Auth  http.HandlerFunc
+	Token http.HandlerFunc
+}
 
 // OAuth2Handler handles oauth2 related request
 // Also provide middleware for other http handler function
@@ -35,9 +40,8 @@ func (h *OAuth2Handler) ServeScopes() *ScopesHandler {
 	return &ScopesHandler{}
 }
 
-// ServeEndpoints bind OAuth2 endpoints to a given base path
-// Note: this is router specific and need to be generated somehow
-func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
+// GetEndpoints generate endpoints http handers and return
+func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
@@ -120,8 +124,10 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 		return
 	}
 
+	ep := OAuth2Endpoints{}
+
 	// authorize endpoint
-	authEndpointFunc := func(w http.ResponseWriter, r *http.Request) {
+	ep.Auth = func(w http.ResponseWriter, r *http.Request) {
 
 		srvr := h.OsinServer
 		resp := srvr.NewResponse()
@@ -145,7 +151,7 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 	}
 
 	// token endpoint
-	tokenEndpointFunc := func(w http.ResponseWriter, r *http.Request) {
+	ep.Token = func(w http.ResponseWriter, r *http.Request) {
 
 		srvr := h.OsinServer
 		resp := srvr.NewResponse()
@@ -165,12 +171,6 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 
 	}
 
-	// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
+	return &ep
 
-	// bind handler with pat
-	// TODO: generate this, or allow injection
-	rtr.Get(base+"/authorize", authEndpointFunc)
-	rtr.Post(base+"/authorize", authEndpointFunc)
-	rtr.Get(base+"/token", tokenEndpointFunc)
-	rtr.Post(base+"/token", tokenEndpointFunc)
 }

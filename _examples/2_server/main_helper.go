@@ -65,8 +65,21 @@ func gourdServer() (n *negroni.Negroni) {
 	CommentServiceRest(r, "/api", "comment", "comments")
 
 	// add oauth2 endpoints to router
-	// NOTE: this will be generated if needed to be router specific
-	//ah.ServeEndpoints(r, "/oauth")
+	// ServeEndpoints bind OAuth2 endpoints to a given base path
+	// Note: this is router specific and need to be generated somehow
+	func(rtr *pat.Router, h *OAuth2Handler, base string) {
+
+		// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
+		ep := h.GetEndpoints()
+
+		// bind handler with pat
+		// TODO: generate this, or allow injection
+		rtr.Get(base+"/authorize", ep.Auth)
+		rtr.Post(base+"/authorize", ep.Auth)
+		rtr.Get(base+"/token", ep.Token)
+		rtr.Post(base+"/token", ep.Token)
+
+	}(r, ah, "/oauth")
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form
