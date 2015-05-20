@@ -2,6 +2,9 @@
 package main
 
 import (
+	"crypto/md5"
+	"fmt"
+	"io"
 	"time"
 )
 
@@ -14,4 +17,19 @@ type User struct {
 	Name     string    `db:"name"`
 	Created  time.Time `db:"created"`
 	Updated  time.Time `db:"updated"`
+}
+
+// PasswordIs matches the hash with database stored password
+func (u *User) PasswordIs(pass string) bool {
+	if u.Password == u.Hash(pass) {
+		return true
+	}
+	return false
+}
+
+// Hash provide the standard hashing for password
+func (u *User) Hash(password string) string {
+	h := md5.New()
+	io.WriteString(h, password)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

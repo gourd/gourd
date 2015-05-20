@@ -40,8 +40,6 @@ func (h *OAuth2Handler) ServeScopes() *ScopesHandler {
 func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 
 	// handle login
-	// TODO: make this generic for different User type
-	//       may use interface
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
 
 		// parse POST input
@@ -82,16 +80,20 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 				return
 			}
 
+			// cast the user as OAuth2User
+			// and do password check
+			ou, ok := u.(OAuth2User)
+			if !ok {
+				log.Printf("User cannot be cast as OAuth2User")
+				err = fmt.Errorf("Internal server error")
+				return
+			}
+
 			// if password does not match
-			// TODO: try casting user into user interface, or fail here
-			// TODO: do password check with user interface method
-			// TODO: use hash in password
-			/*
-				if (*user).PasswordHash != loginPass {
-					log.Printf("Attempt to login \"%s\" with incorrect password", loginName)
-					err = fmt.Errorf("Username or Password incorrect")
-				}
-			*/
+			if !ou.PasswordIs(loginPass) {
+				log.Printf("Attempt to login \"%s\" with incorrect password", loginName)
+				err = fmt.Errorf("Username or Password incorrect")
+			}
 
 			// return pointer of user object, allow it to be re-cast
 			ar.UserData = u
