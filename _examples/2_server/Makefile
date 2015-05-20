@@ -6,6 +6,7 @@ build: prebuild
 prebuild:
 	go get github.com/codegangsta/negroni
 	go get github.com/gourd/service
+	go get github.com/gourd/service/upperio
 	go get github.com/gorilla/pat
 	go get upper.io/db/sqlite
 	go get github.com/yookoala/restit

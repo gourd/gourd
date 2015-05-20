@@ -5,7 +5,8 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
-	"upper.io/db"
+	"github.com/gourd/service"
+	"github.com/gourd/service/upperio"
 	"upper.io/db/sqlite"
 )
 
@@ -19,14 +20,9 @@ import (
 func gourdServer() (n *negroni.Negroni) {
 
 	// define db
-	// TODO: change to a new structure allow creating
-	//       database session per connection
-	db, err := db.Open(sqlite.Adapter, sqlite.ConnectionURL{
+	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
 		Database: `./data/sqlite3.db`,
 	})
-	if err != nil {
-		panic(err)
-	}
 
 	// create router specific / independent middleware
 	ch := &codec.Handler{}
@@ -35,10 +31,10 @@ func gourdServer() (n *negroni.Negroni) {
 	// provide services to auth storage
 	// NOTE: these are independent to router
 	as := &OAuth2Storage{}
-	as.UseClientIn(&ClientService{db})
-	as.UseAuthIn(&AuthorizeDataService{db})
-	as.UseAccessIn(&AccessDataService{db})
-	as.UseUserIn(&UserService{db})
+	as.UseClientFrom(service.Providers.MustGet("Client"))
+	as.UseAuthFrom(service.Providers.MustGet("AuthorizeData"))
+	as.UseAccessFrom(service.Providers.MustGet("AccessData"))
+	as.UseUserFrom(service.Providers.MustGet("User"))
 	ah.UseStorage(as)
 
 	// provide storage to osin server
@@ -65,11 +61,8 @@ func gourdServer() (n *negroni.Negroni) {
 	r := pat.New()
 
 	// add services rest to router
-	ps := &PostService{db}
-	ps.Rest(r, "/api", "post", "posts")
-
-	cs := &CommentService{db}
-	cs.Rest(r, "/api", "comment", "comments")
+	PostServiceRest(r, "/api", "post", "posts")
+	CommentServiceRest(r, "/api", "comment", "comments")
 
 	// add oauth2 endpoints to router
 	// NOTE: this will be generated if needed to be router specific

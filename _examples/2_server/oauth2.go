@@ -37,7 +37,6 @@ func (h *OAuth2Handler) ServeScopes() *ScopesHandler {
 
 // ServeEndpoints bind OAuth2 endpoints to a given base path
 // Note: this is router specific and need to be generated somehow
-// TODO: **correctly handle database session with user session
 func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 
 	// handle login
@@ -58,7 +57,13 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 			}
 
 			// obtain user service
-			us := h.Storage.UserService
+			var us service.Service
+			us, err = h.Storage.UserService(r)
+			if err != nil {
+				log.Printf("Error obtaining user service: %s", err.Error())
+				err = fmt.Errorf("Internal Server Error")
+				return
+			}
 
 			// get user from database
 			u := us.AllocEntity()
@@ -118,8 +123,7 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 
 		srvr := h.OsinServer
 		resp := srvr.NewResponse()
-
-		// TODO: pass request pointer to services, if needed (e.g. GAE)
+		resp.Storage.(*OAuth2Storage).SetRequest(r)
 
 		// handle authorize request with osin
 		if ar := srvr.HandleAuthorizeRequest(resp, r); ar != nil {
@@ -143,6 +147,7 @@ func (h *OAuth2Handler) ServeEndpoints(rtr *pat.Router, base string) {
 
 		srvr := h.OsinServer
 		resp := srvr.NewResponse()
+		resp.Storage.(*OAuth2Storage).SetRequest(r)
 
 		if ar := srvr.HandleAccessRequest(resp, r); ar != nil {
 			// TODO: handle authorization

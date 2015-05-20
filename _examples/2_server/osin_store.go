@@ -8,59 +8,72 @@ import (
 
 // OAuth2Storage implements osin.Storage
 type OAuth2Storage struct {
-	ClientService service.Service
-	AuthService   service.Service
-	AccessService service.Service
-	UserService   service.Service
+	r             *http.Request
+	ClientService service.ProviderFunc
+	AuthService   service.ProviderFunc
+	AccessService service.ProviderFunc
+	UserService   service.ProviderFunc
 }
 
-// UseClientIn set the ClientService
-func (a *OAuth2Storage) UseClientIn(s service.Service) *OAuth2Storage {
-	a.ClientService = s
-	return a
+// SetRequest set the ClientService
+func (store *OAuth2Storage) SetRequest(r *http.Request) *OAuth2Storage {
+	store.r = r
+	return store
 }
 
-// UseAuthIn set the AuthService
-func (a *OAuth2Storage) UseAuthIn(s service.Service) *OAuth2Storage {
-	a.AuthService = s
-	return a
+// UseClientFrom set the ClientService
+func (store *OAuth2Storage) UseClientFrom(p service.ProviderFunc) *OAuth2Storage {
+	store.ClientService = p
+	return store
 }
 
-// UseAccessIn set the AccessService
-func (a *OAuth2Storage) UseAccessIn(s service.Service) *OAuth2Storage {
-	a.AccessService = s
-	return a
+// UseAuthFrom set the AuthService
+func (store *OAuth2Storage) UseAuthFrom(p service.ProviderFunc) *OAuth2Storage {
+	store.AuthService = p
+	return store
 }
 
-// UseUserIn set the UserService
-func (a *OAuth2Storage) UseUserIn(s service.Service) *OAuth2Storage {
-	a.UserService = s
-	return a
+// UseAccessFrom set the AccessService
+func (store *OAuth2Storage) UseAccessFrom(p service.ProviderFunc) *OAuth2Storage {
+	store.AccessService = p
+	return store
+}
+
+// UseUserFrom set the UserService
+func (store *OAuth2Storage) UseUserFrom(p service.ProviderFunc) *OAuth2Storage {
+	store.UserService = p
+	return store
 }
 
 // Clone the storage
-func (a *OAuth2Storage) Clone() (c osin.Storage) {
+func (store *OAuth2Storage) Clone() (c osin.Storage) {
 	c = &OAuth2Storage{
-		ClientService: a.ClientService,
-		AuthService:   a.AuthService,
-		AccessService: a.AccessService,
-		UserService:   a.UserService,
+		ClientService: store.ClientService,
+		AuthService:   store.AuthService,
+		AccessService: store.AccessService,
+		UserService:   store.UserService,
 	}
 	return
 }
 
 // Close the connection to the storage
-func (a *OAuth2Storage) Close() {
+func (store *OAuth2Storage) Close() {
 	// placeholder now, will revisit when doing mongodb
 }
 
 // GetClient loads the client by id (client_id)
-func (a *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
+func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
+
+	srv, err := store.ClientService(store.r)
+	if err != nil {
+		return
+	}
 
 	e := &Client{}
 	conds := service.NewConds()
 	conds.Add("id", id)
-	err = a.ClientService.One(conds, e)
+
+	err = srv.One(conds, e)
 	if err != nil {
 		return
 	} else if e == nil {
@@ -74,26 +87,37 @@ func (a *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
 }
 
 // SaveAuthorize saves authorize data.
-func (a *OAuth2Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
+func (store *OAuth2Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
+
+	srv, err := store.AuthService(store.r)
+	if err != nil {
+		return
+	}
+
 	e := &AuthorizeData{}
 	err = e.ReadOsin(d)
 	if err != nil {
 		return
 	}
-	err = a.AuthService.Create(service.NewConds(), e)
+	err = srv.Create(service.NewConds(), e)
 	return
 }
 
 // LoadAuthorize looks up AuthorizeData by a code.
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
-func (a *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err error) {
+func (store *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err error) {
+
+	srv, err := store.AuthService(store.r)
+	if err != nil {
+		return
+	}
 
 	e := &AuthorizeData{}
 	conds := service.NewConds()
 	conds.Add("code", code)
 
-	err = a.AuthService.One(conds, e)
+	err = srv.One(conds, e)
 	if err != nil {
 		return
 	} else if e == nil {
@@ -107,35 +131,50 @@ func (a *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err e
 }
 
 // RemoveAuthorize revokes or deletes the authorization code.
-func (a *OAuth2Storage) RemoveAuthorize(code string) (err error) {
+func (store *OAuth2Storage) RemoveAuthorize(code string) (err error) {
+	srv, err := store.AuthService(store.r)
+	if err != nil {
+		return
+	}
+
 	conds := service.NewConds()
 	conds.Add("code", code)
-	err = a.AuthService.Delete(conds)
+	err = srv.Delete(conds)
 	return
 }
 
 // SaveAccess writes AccessData.
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
-func (a *OAuth2Storage) SaveAccess(ad *osin.AccessData) (err error) {
+func (store *OAuth2Storage) SaveAccess(ad *osin.AccessData) (err error) {
+	srv, err := store.AccessService(store.r)
+	if err != nil {
+		return
+	}
+
 	e := &AccessData{}
 	err = e.ReadOsin(ad)
 	if err != nil {
 		return
 	}
-	err = a.AccessService.Create(service.NewConds(), e)
+	err = srv.Create(service.NewConds(), e)
 	return
 }
 
 // LoadAccess retrieves access data by token. Client information MUST be loaded together.
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
-func (a *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
+func (store *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
+
+	srv, err := store.AccessService(store.r)
+	if err != nil {
+		return
+	}
 
 	e := &AccessData{}
 	conds := service.NewConds()
 	conds.Add("access_token", token)
 
-	err = a.AccessService.One(conds, e)
+	err = srv.One(conds, e)
 	if err != nil {
 		return
 	} else if e == nil {
@@ -149,23 +188,33 @@ func (a *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err error)
 }
 
 // RemoveAccess revokes or deletes an AccessData.
-func (a *OAuth2Storage) RemoveAccess(token string) (err error) {
+func (store *OAuth2Storage) RemoveAccess(token string) (err error) {
+	srv, err := store.AccessService(store.r)
+	if err != nil {
+		return
+	}
+
 	conds := service.NewConds()
 	conds.Add("access_token", token)
-	err = a.AccessService.Delete(conds)
+	err = srv.Delete(conds)
 	return
 }
 
 // LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
-func (a *OAuth2Storage) LoadRefresh(token string) (d *osin.AccessData, err error) {
+func (store *OAuth2Storage) LoadRefresh(token string) (d *osin.AccessData, err error) {
+
+	srv, err := store.AccessService(store.r)
+	if err != nil {
+		return
+	}
 
 	e := &AccessData{}
 	conds := service.NewConds()
 	conds.Add("refresh_token", token)
 
-	err = a.AccessService.One(conds, e)
+	err = srv.One(conds, e)
 	if err != nil {
 		return
 	} else if e == nil {
@@ -179,9 +228,14 @@ func (a *OAuth2Storage) LoadRefresh(token string) (d *osin.AccessData, err error
 }
 
 // RemoveRefresh revokes or deletes refresh AccessData.
-func (a *OAuth2Storage) RemoveRefresh(token string) (err error) {
+func (store *OAuth2Storage) RemoveRefresh(token string) (err error) {
+	srv, err := store.AccessService(store.r)
+	if err != nil {
+		return
+	}
+
 	conds := service.NewConds()
 	conds.Add("refresh_token", token)
-	err = a.AccessService.Delete(conds)
+	err = srv.Delete(conds)
 	return
 }

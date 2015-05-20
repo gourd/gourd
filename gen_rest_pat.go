@@ -14,7 +14,7 @@ func init() {
 
 
 // dummy rest binder
-func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
+func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// define paths
 	p := base + "/" + nounp
@@ -56,6 +56,14 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 	// Create
 	r.Post(p, func(w http.ResponseWriter, r *http.Request) {
 		var err error
+
+		// get service
+		sr, err := Get{{ .Type.Name }}(r)
+		s, _ := sr.(*{{ .Type.Name }})
+		if err != nil {
+			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			return
+		}
 
 		// allocate entity
 		e := s.AllocEntity()
@@ -105,6 +113,14 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 	r.Get(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// get service
+		sr, err := Get{{ .Type.Name }}(r)
+		s, _ := sr.(*{{ .Type.Name }})
+		if err != nil {
+			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			return
+		}
+
 		// allocate memory for variables
 		el := s.AllocEntityList()
 
@@ -147,6 +163,14 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 	// Update
 	r.Put(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
+
+		// get service
+		sr, err := Get{{ .Type.Name }}(r)
+		s, _ := sr.(*{{ .Type.Name }})
+		if err != nil {
+			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			return
+		}
 
 		// allocate memory for variables
 		e := s.AllocEntity()
@@ -200,6 +224,14 @@ func (s *{{ .Type.Name }}) Rest(r *pat.Router, base, noun, nounp string) {
 	// Delete
 	r.Delete(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
+
+		// get service
+		sr, err := Get{{ .Type.Name }}(r)
+		s, _ := sr.(*{{ .Type.Name }})
+		if err != nil {
+			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			return
+		}
 
 		// allocate memory for variables
 		e := s.AllocEntity()
