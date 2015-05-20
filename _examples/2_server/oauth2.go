@@ -43,6 +43,14 @@ func (h *OAuth2Handler) ServeScopes() *ScopesHandler {
 // GetEndpoints generate endpoints http handers and return
 func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 
+	// read login credential
+	getLoginCred := func(r *http.Request) (idField, id, password string) {
+		idField = "username"
+		id = r.Form.Get("login")
+		password = r.Form.Get("password")
+		return
+	}
+
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
 
@@ -51,9 +59,8 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 		if r.Method == "POST" {
 
 			// get login information from form
-			loginName := r.Form.Get("login")
-			loginPass := r.Form.Get("password")
-			if loginName == "" || loginPass == "" {
+			idField, id, password := getLoginCred(r)
+			if id == "" || password == "" {
 				err = fmt.Errorf("Empty Username or Password")
 				return
 			}
@@ -69,7 +76,7 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 
 			// get user from database
 			u := us.AllocEntity()
-			c := service.NewConds().Add("username", loginName)
+			c := service.NewConds().Add(idField, id)
 			err = us.One(c, u)
 			if err != nil {
 				log.Printf("Error searching user with Service: %s", err.Error())
@@ -79,7 +86,7 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 
 			// if user does not exists
 			if u == nil {
-				log.Printf("Unknown user \"%s\" attempt to login", loginName)
+				log.Printf("Unknown user \"%s\" attempt to login", id)
 				err = fmt.Errorf("Username or Password incorrect")
 				return
 			}
@@ -94,8 +101,8 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 			}
 
 			// if password does not match
-			if !ou.PasswordIs(loginPass) {
-				log.Printf("Attempt to login \"%s\" with incorrect password", loginName)
+			if !ou.PasswordIs(password) {
+				log.Printf("Attempt to login \"%s\" with incorrect password", id)
 				err = fmt.Errorf("Username or Password incorrect")
 			}
 
