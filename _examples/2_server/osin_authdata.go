@@ -14,7 +14,7 @@ type AuthorizeData struct {
 	Id int32 `db:"id"`
 
 	// Client ID the data is linked to
-	ClientId int64 `db:"client_id"`
+	ClientId string `db:"client_id"`
 
 	// Client information
 	Client *Client `db:"-"`

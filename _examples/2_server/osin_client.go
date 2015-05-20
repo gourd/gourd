@@ -8,6 +8,7 @@ type Client struct {
 	Id          string      `db:"id"`
 	Secret      string      `db:"secret"`
 	RedirectUri string      `db:"redirect_uri"`
+	UserId      int64       `db:"user_id"`
 	UserData    interface{} `db:"-"`
 }
 

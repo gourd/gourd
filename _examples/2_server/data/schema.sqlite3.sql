@@ -5,6 +5,9 @@
 -- to be used in this example
 --
 
+--
+-- example data
+--
 DROP TABLE IF EXISTS posts;
 CREATE TABLE posts (
   `id`    INTEGER PRIMARY KEY,
@@ -23,4 +26,62 @@ CREATE TABLE comments (
   `body`    TEXT,
   `size`    INTEGER,
   `date`    INTEGER
+);
+
+
+--
+-- example user table
+--
+
+DROP TABLE IF EXISTS user;
+CREATE TABLE user (
+  `id`       INTEGER PRIMARY KEY,
+  `username` TEXT,
+  `email`    TEXT,
+  `password` TEXT,
+  `name`     INTEGER,
+  `created`  INTEGER,
+  `updated`  INTEGER
+);
+
+
+--
+-- OAuth2 related tables
+--
+DROP TABLE IF EXISTS oauth2_client;
+CREATE TABLE oauth2_client (
+  `id`           TEXT PRIMARY KEY,
+  `secret`       TEXT,
+  `redirect_uri` TEXT,
+  `user_id`      TEXT
+);
+INSERT INTO oauth2_client (id, secret, redirect_uri, user_id)
+VALUES ('testing', 'testing', 'http://localhost:8080/appauth/code', 0);
+
+DROP TABLE IF EXISTS oauth2_auth;
+CREATE TABLE oauth2_auth (
+  `id`           INTEGER PRIMARY KEY,
+  `client_id`    TEXT,
+  `code`         TEXT,
+  `expires_in`   INTEGER,
+  `scope`        TEXT,
+  `redirect_uri` TEXT,
+  `state`        TEXT,
+  `created_at`   INTEGER,
+  `user_id`      INTEGER
+);
+
+DROP TABLE IF EXISTS oauth2_access;
+CREATE TABLE oauth2_access (
+  `id`             INTEGER PRIMARY KEY,
+  `client_id`      TEXT,
+  `prev_access_id` INTEGER,
+  `auth_id`        INTEGER,
+  `code`           TEXT,
+  `expires_in`     INTEGER,
+  `scope`          TEXT,
+  `redirect_uri`   TEXT,
+  `state`          TEXT,
+  `created_at`     INTEGER,
+  `user_id`        INTEGER
 );
