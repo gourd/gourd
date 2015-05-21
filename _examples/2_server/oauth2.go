@@ -54,12 +54,15 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
 
+		log.Printf("handleLogin")
+
 		// parse POST input
 		r.ParseForm()
 		if r.Method == "POST" {
 
 			// get login information from form
 			idField, id, password := getLoginCred(r)
+			log.Printf("login: %s, %s, %s", idField, id, password)
 			if id == "" || password == "" {
 				err = fmt.Errorf("Empty Username or Password")
 				return
@@ -79,7 +82,7 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 			c := service.NewConds().Add(idField, id)
 			err = us.One(c, u)
 			if err != nil {
-				log.Printf("Error searching user with Service: %s", err.Error())
+				log.Printf("Error searching user \"%s\": %s", id, err.Error())
 				err = fmt.Errorf("Internal Server Error")
 				return
 			}
@@ -104,6 +107,8 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 			if !ou.PasswordIs(password) {
 				log.Printf("Attempt to login \"%s\" with incorrect password", id)
 				err = fmt.Errorf("Username or Password incorrect")
+			} else {
+				log.Printf("Login \"%s\" success", id)
 			}
 
 			// return pointer of user object, allow it to be re-cast
@@ -136,12 +141,15 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 	// authorize endpoint
 	ep.Auth = func(w http.ResponseWriter, r *http.Request) {
 
+		log.Printf("auth endpoint")
+
 		srvr := h.OsinServer
 		resp := srvr.NewResponse()
 		resp.Storage.(*OAuth2Storage).SetRequest(r)
 
 		// handle authorize request with osin
 		if ar := srvr.HandleAuthorizeRequest(resp, r); ar != nil {
+			log.Printf("handle authorize request")
 			if err := handleLogin(ar, w, r); err != nil {
 				return
 			}
