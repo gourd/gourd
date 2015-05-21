@@ -5,7 +5,8 @@ package main
 // Client implements the osin Client interface
 //
 type Client struct {
-	Id          string      `db:"id"`
+	Id          int64       `db:"id,omitempty"`
+	StrId       string      `db:"str_id"`
 	Secret      string      `db:"secret"`
 	RedirectUri string      `db:"redirect_uri"`
 	UserId      int64       `db:"user_id"`
@@ -13,7 +14,7 @@ type Client struct {
 }
 
 func (c *Client) GetId() string {
-	return c.Id
+	return c.StrId
 }
 
 func (c *Client) GetSecret() string {

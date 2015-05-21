@@ -63,9 +63,9 @@ func (store *OAuth2Storage) Close() {
 }
 
 // GetClient loads the client by id (client_id)
-func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
+func (store *OAuth2Storage) GetClient(strId string) (c osin.Client, err error) {
 
-	log.Printf("GetClient %s", id)
+	log.Printf("GetClient %s", strId)
 
 	srv, err := store.ClientService(store.r)
 	if err != nil {
@@ -75,16 +75,17 @@ func (store *OAuth2Storage) GetClient(id string) (c osin.Client, err error) {
 
 	e := &Client{}
 	conds := service.NewConds()
-	conds.Add("id", id)
+	conds.Add("str_id", strId)
 
 	err = srv.One(conds, e)
 	if err != nil {
+		log.Printf("%#v", conds)
 		log.Printf("Failed running One()")
 		return
 	} else if e == nil {
-		log.Printf("Client not found for the id")
+		log.Printf("Client not found for the str_id")
 		err = service.Errorf(http.StatusNotFound,
-			"Client not found for the id")
+			"Client not found for the str_id")
 		return
 	}
 

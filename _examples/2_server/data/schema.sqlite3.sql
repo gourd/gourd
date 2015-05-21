@@ -50,12 +50,13 @@ CREATE TABLE user (
 --
 DROP TABLE IF EXISTS oauth2_client;
 CREATE TABLE oauth2_client (
-  `id`           TEXT PRIMARY KEY,
+  `id`           INTEGER PRIMARY KEY,
+  `str_id`       TEXT,
   `secret`       TEXT,
   `redirect_uri` TEXT,
   `user_id`      TEXT
 );
-INSERT INTO oauth2_client (id, secret, redirect_uri, user_id)
+INSERT INTO oauth2_client (str_id, secret, redirect_uri, user_id)
 VALUES ('testing', 'testing', 'http://localhost:8080/appauth/code', 0);
 
 DROP TABLE IF EXISTS oauth2_auth;
