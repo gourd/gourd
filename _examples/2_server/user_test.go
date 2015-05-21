@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func dummyNewUser() *User {
+func dummyNewUser(password string) *User {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	randSeq := func(n int) string {
@@ -16,10 +16,11 @@ func dummyNewUser() *User {
 		return string(b)
 	}
 
-	return &User{
+	u := &User{
 		Username: randSeq(10),
-		Password: randSeq(8),
 	}
+	u.Password = u.Hash(password)
+	return u
 }
 
 func TestUser(t *testing.T) {
