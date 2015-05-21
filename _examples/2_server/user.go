@@ -10,7 +10,7 @@ import (
 
 // User of the API server
 type User struct {
-	Id       int64     `db:"id"`
+	Id       int64     `db:"id,omitempty"`
 	Username string    `db:"username"`
 	Email    string    `db:"email"`
 	Password string    `db:"password"`

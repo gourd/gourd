@@ -12,7 +12,7 @@ import (
 type AccessData struct {
 
 	// Authorize Data ID
-	Id int32 `db:"id"`
+	Id int32 `db:"id,omitempty"`
 
 	// Client ID the data is linked to
 	ClientId string `db:"client_id"`
