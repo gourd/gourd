@@ -46,7 +46,7 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 	// read login credential
 	getLoginCred := func(r *http.Request) (idField, id, password string) {
 		idField = "username"
-		id = r.Form.Get("login")
+		id = r.Form.Get(idField)
 		password = r.Form.Get("password")
 		return
 	}
