@@ -58,11 +58,11 @@ func gourdServer() (n *negroni.Negroni) {
 	//ah.HandleFunc("edit comment", someAccessHandleFunc)
 
 	// create router of the specific type
-	r := pat.New()
+	rtr := pat.New()
 
 	// add services rest to router
-	PostServiceRest(r, "/api", "post", "posts")
-	CommentServiceRest(r, "/api", "comment", "comments")
+	PostServiceRest(rtr, "/api", "post", "posts")
+	CommentServiceRest(rtr, "/api", "comment", "comments")
 
 	// add oauth2 endpoints to router
 	// ServeEndpoints bind OAuth2 endpoints to a given base path
@@ -79,12 +79,12 @@ func gourdServer() (n *negroni.Negroni) {
 		rtr.Get(base+"/token", ep.Token)
 		rtr.Post(base+"/token", ep.Token)
 
-	}(r, ah, "/oauth")
+	}(rtr, ah, "/oauth")
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form
 	// NOTE: this will be generated if needed to be router specific
-	//ah.ServeLogin(r, "/login")
+	//ah.ServeLogin(rtr, "/login")
 
 	// create negroni middleware handler
 	// with middlewares
@@ -93,7 +93,7 @@ func gourdServer() (n *negroni.Negroni) {
 	n.Use(negroni.Wrap(ah.ServeScopes()))
 
 	// use router in negroni
-	n.UseHandler(r)
+	n.UseHandler(rtr)
 
 	return
 }
