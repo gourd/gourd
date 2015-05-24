@@ -56,8 +56,6 @@ CREATE TABLE oauth2_client (
   `redirect_uri` TEXT,
   `user_id`      TEXT
 );
-INSERT INTO oauth2_client (str_id, secret, redirect_uri, user_id)
-VALUES ('testing', 'testing', 'http://localhost:8080/appauth/code', 0);
 
 DROP TABLE IF EXISTS oauth2_auth;
 CREATE TABLE oauth2_auth (
