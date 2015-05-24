@@ -14,17 +14,29 @@ type Client struct {
 }
 
 func (c *Client) GetId() string {
+	if c == nil {
+		return ""
+	}
 	return c.StrId
 }
 
 func (c *Client) GetSecret() string {
+	if c == nil {
+		return ""
+	}
 	return c.Secret
 }
 
 func (c *Client) GetRedirectUri() string {
+	if c == nil {
+		return ""
+	}
 	return c.RedirectUri
 }
 
 func (c *Client) GetUserData() interface{} {
+	if c == nil {
+		return nil
+	}
 	return c.UserData
 }
