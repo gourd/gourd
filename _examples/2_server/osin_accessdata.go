@@ -21,13 +21,13 @@ type AccessData struct {
 	Client *Client `db:"-"`
 
 	// Authorize id
-	AuthorizeId string `db:"auth_id"`
+	AuthorizeCode string `db:"auth_code"`
 
 	// Authorize data, for authorization code
 	AuthorizeData *AuthorizeData `db:"-"`
 
 	// Previous access data id
-	AccessId string `db:"prev_access_id"`
+	PrevAccessToken string `db:"prev_access_token"`
 
 	// Previous access data, for refresh token
 	AccessData *AccessData `db:"-"`

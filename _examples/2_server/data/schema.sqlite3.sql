@@ -72,15 +72,16 @@ CREATE TABLE oauth2_auth (
 
 DROP TABLE IF EXISTS oauth2_access;
 CREATE TABLE oauth2_access (
-  `id`             INTEGER PRIMARY KEY,
-  `client_id`      TEXT,
-  `prev_access_id` INTEGER,
-  `auth_id`        INTEGER,
-  `code`           TEXT,
-  `expires_in`     INTEGER,
-  `scope`          TEXT,
-  `redirect_uri`   TEXT,
-  `state`          TEXT,
-  `created_at`     INTEGER,
-  `user_id`        INTEGER
+  `id`                INTEGER PRIMARY KEY,
+  `client_id`         TEXT,
+  `auth_code`         TEXT,
+  `access_token`      TEXT,
+  `prev_access_token` TEXT,
+  `refresh_token`     TEXT,
+  `expires_in`        INTEGER,
+  `scope`             TEXT,
+  `redirect_uri`      TEXT,
+  `state`             TEXT,
+  `created_at`        INTEGER,
+  `user_id`           INTEGER
 );

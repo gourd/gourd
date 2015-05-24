@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/RangelReale/osin"
 	"time"
 )
@@ -59,5 +60,18 @@ func (d *AuthorizeData) ToOsin() (od *osin.AuthorizeData) {
 }
 
 func (d *AuthorizeData) ReadOsin(od *osin.AuthorizeData) error {
+	var ok bool
+	if od.Client == nil {
+		// skip for now
+	} else if d.Client, ok = od.Client.(*Client); !ok {
+		return fmt.Errorf("osin client is not of Client type: %#v", od)
+	}
+	d.Code = od.Code
+	d.ExpiresIn = od.ExpiresIn
+	d.Scope = od.Scope
+	d.RedirectUri = od.RedirectUri
+	d.State = od.State
+	d.CreatedAt = od.CreatedAt
+	d.UserData = od.UserData
 	return nil
 }
