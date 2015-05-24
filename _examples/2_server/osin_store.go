@@ -108,6 +108,11 @@ func (store *OAuth2Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
 	if err != nil {
 		return
 	}
+
+	// store client id with auth in database
+	e.ClientId = e.Client.GetId()
+
+	// create the auth data now
 	err = srv.Create(service.NewConds(), e)
 	return
 }
@@ -119,6 +124,7 @@ func (store *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, e
 
 	log.Printf("LoadAuthorize %s", code)
 
+	// loading osin using osin service
 	srv, err := store.AuthService(store.r)
 	if err != nil {
 		return
@@ -134,6 +140,18 @@ func (store *OAuth2Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, e
 	} else if e == nil {
 		err = service.Errorf(http.StatusNotFound,
 			"AuthorizeData not found for the code")
+		return
+	}
+
+	// load client here
+	var ok bool
+	cli, err := store.GetClient(e.ClientId)
+	if err != nil {
+		return
+	} else if e.Client, ok = cli.(*Client); !ok {
+		err = service.Errorf(http.StatusInternalServerError,
+			"Internal Server Error")
+		log.Printf("Unable to cast client into Client type: %#v", cli)
 		return
 	}
 
@@ -161,19 +179,34 @@ func (store *OAuth2Storage) RemoveAuthorize(code string) (err error) {
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (store *OAuth2Storage) SaveAccess(ad *osin.AccessData) (err error) {
 
-	log.Printf("SaveAccess %v", ad)
-
 	srv, err := store.AccessService(store.r)
 	if err != nil {
 		return
 	}
 
+	// generate database access type
 	e := &AccessData{}
 	err = e.ReadOsin(ad)
 	if err != nil {
 		return
 	}
+
+	// store client id with access in database
+	e.ClientId = e.Client.GetId()
+
+	// store authorize id with access in database
+	if ad.AuthorizeData != nil {
+		e.AuthorizeCode = ad.AuthorizeData.Code
+	}
+
+	// store previous access id with access in database
+	if ad.AccessData != nil {
+		e.PrevAccessToken = ad.AccessData.AccessToken
+	}
+
+	// create in database
 	err = srv.Create(service.NewConds(), e)
+	log.Printf("SaveAccess last error: %#v", err)
 	return
 }
 
@@ -199,6 +232,54 @@ func (store *OAuth2Storage) LoadAccess(token string) (d *osin.AccessData, err er
 	} else if e == nil {
 		err = service.Errorf(http.StatusNotFound,
 			"AccessData not found for the token")
+		return
+	}
+
+	// load supplementary data
+	err = func(e *AccessData) (err error) {
+
+		// load client here
+		var ok bool
+		cli, err := store.GetClient(e.ClientId)
+		if err != nil {
+			return
+		} else if e.Client, ok = cli.(*Client); !ok {
+			err = service.Errorf(http.StatusInternalServerError,
+				"Internal Server Error")
+			log.Printf("Unable to cast client into Client type: %#v", cli)
+			return
+		}
+
+		// load authdata here
+		if e.AuthorizeCode != "" {
+			a, err := store.LoadAuthorize(e.AuthorizeCode)
+			if err != nil {
+				return err
+			}
+			ad := &AuthorizeData{}
+			if err = ad.ReadOsin(a); err != nil {
+				return err
+			}
+			e.AuthorizeData = ad
+		}
+
+		// load previous access here
+		if e.PrevAccessToken != "" {
+			a, err := store.LoadAccess(e.PrevAccessToken)
+			if err != nil {
+				return err
+			}
+			ad := &AccessData{}
+			if err = ad.ReadOsin(a); err != nil {
+				return err
+			}
+			e.AccessData = ad
+		}
+
+		return
+	}(e)
+
+	if err != nil {
 		return
 	}
 

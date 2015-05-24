@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/pat"
 	"github.com/gourd/service"
 	"log"
@@ -10,24 +11,20 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"fmt"
 )
 
 // example client web app in the login
-func testOAuth2ClientApp(path1, path2 string) http.Handler {
+func testOAuth2ClientApp(path string) http.Handler {
 	rtr := pat.New()
 
 	// add dummy client reception of redirection
-	rtr.Get(path1, func(w http.ResponseWriter, r *http.Request) {
+	rtr.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		enc := json.NewEncoder(w)
 		enc.Encode(map[string]string{
-			"code": r.Form.Get("code"),
+			"code":  r.Form.Get("code"),
+			"token": r.Form.Get("token"),
 		})
-	})
-
-	rtr.Get(path2, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "success")
 	})
 
 	return rtr
@@ -40,9 +37,9 @@ func TestOAuth2(t *testing.T) {
 	defer ts.Close()
 
 	// create test client server
-	tcspath1 := "/example_app/code"
-	tcspath2 := "/example_app/success"
-	tcs := httptest.NewServer(testOAuth2ClientApp(tcspath1, tcspath2))
+	tcsbase := "/example_app/"
+	tcspath := tcsbase + "code"
+	tcs := httptest.NewServer(testOAuth2ClientApp(tcspath))
 	defer tcs.Close()
 
 	// a dummy password for dummy user
@@ -76,11 +73,11 @@ func TestOAuth2(t *testing.T) {
 		}
 
 		return c, u
-	}(tcs, password, tcs.URL + tcspath1)
+	}(tcs, password, tcs.URL+tcsbase)
 
 	// build user request to authorization endpoint
 	// get response from client web app redirect uri
-	code, err := func (c *Client, u *User, password string) (code string, err error) {
+	code, err := func(c *Client, u *User, password, redirect string) (code string, err error) {
 
 		// login form
 		form := url.Values{}
@@ -92,7 +89,7 @@ func TestOAuth2(t *testing.T) {
 		q := &url.Values{}
 		q.Add("response_type", "code")
 		q.Add("client_id", c.StrId)
-		q.Add("redirect_url", c.RedirectUri)
+		q.Add("redirect_uri", redirect)
 
 		req, err := http.NewRequest("POST",
 			ts.URL+"/oauth/authorize"+"?"+q.Encode(),
@@ -110,6 +107,8 @@ func TestOAuth2(t *testing.T) {
 			err = fmt.Errorf("Failed run the request: %s", err.Error())
 		}
 
+		log.Printf("Response.Request: %#v", resp.Request.URL)
+
 		// request should be redirected to client app with code
 		// the testing client app response with a json containing "code"
 		// decode the client app json and retrieve the code
@@ -123,7 +122,7 @@ func TestOAuth2(t *testing.T) {
 		log.Printf("Response Body: %#v", bodyDecoded["code"])
 
 		return
-	}(c, u, password)
+	}(c, u, password, tcs.URL+tcspath)
 
 	// quite if error
 	if err != nil {
@@ -133,7 +132,7 @@ func TestOAuth2(t *testing.T) {
 
 	// retrieve token from token endpoint
 	// get response from client web app redirect uri
-	token, err := func (c *Client, code, redirect string) (token string, err error) {
+	token, err := func(c *Client, code, redirect string) (token string, err error) {
 
 		log.Printf("Begin token request")
 
@@ -144,10 +143,10 @@ func TestOAuth2(t *testing.T) {
 		form.Add("client_secret", c.Secret)
 		form.Add("grant_type", "authorization_code")
 		form.Add("redirect_uri", redirect)
-		log.Printf("token request :%s", form.Encode())
 		req, err := http.NewRequest("POST",
 			ts.URL+"/oauth/token",
 			strings.NewReader(form.Encode()))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		if err != nil {
 			t.Errorf("Failed to form new request: %s", err.Error())
 		}
@@ -163,10 +162,16 @@ func TestOAuth2(t *testing.T) {
 		bodyDecoded := make(map[string]string)
 		dec := json.NewDecoder(resp.Body)
 		dec.Decode(&bodyDecoded)
+
 		log.Printf("Response Body: %#v", bodyDecoded)
+		var ok bool
+		if token, ok = bodyDecoded["access_token"]; !ok {
+			err = fmt.Errorf(
+				"Unable to parse access_token: %s", err.Error())
+		}
 		return
 
-	}(c, code, tcs.URL + tcspath2)
+	}(c, code, tcs.URL+tcspath)
 
 	// quite if error
 	if err != nil {
