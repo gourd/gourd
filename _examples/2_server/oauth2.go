@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"text/template"
 )
 
 // OAuth2Endpoints contains http handler func of different endpoints
@@ -49,6 +50,26 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 		id = r.Form.Get(idField)
 		password = r.Form.Get("password")
 		return
+	}
+
+	// template for login form
+	tmplStr := `
+<!DOCTYPE html>
+<html>
+<body>
+	LOGIN {{ .SiteName }}<br/>
+	<form action="{{ .FormAction }}" method="POST">
+		Login: <input type="text" name="login" /><br/>
+		Password: <input type="password" name="password" /><br/>
+		<input type="submit"/>
+	</form>
+</body>
+</html>
+`
+
+	tmpl, err := template.New("loginForm").Parse(tmplStr)
+	if err != nil {
+		panic(err)
 	}
 
 	// handle login
@@ -117,22 +138,26 @@ func (h *OAuth2Handler) GetEndpoints() *OAuth2Endpoints {
 		}
 
 		// no POST input or incorrect login, show form
-		// TODO: use template to handle this, or allow injecting function for this
-		err = fmt.Errorf("No login information")
-		w.Write([]byte("<html><body>"))
-		w.Write([]byte(fmt.Sprintf("LOGIN %s (use test/test)<br/>", ar.Client.GetId())))
-		w.Write([]byte(fmt.Sprintf("<form action=\"%s?response_type=%s&client_id=%s&state=%s&scope=%s&redirect_uri=%s\" method=\"POST\">",
-			r.URL.Path,
-			ar.Type,
-			ar.Client.GetId(),
-			ar.State,
-			ar.Scope,
-			url.QueryEscape(ar.RedirectUri))))
-		w.Write([]byte("Login: <input type=\"text\" name=\"login\" /><br/>"))
-		w.Write([]byte("Password: <input type=\"password\" name=\"password\" /><br/>"))
-		w.Write([]byte("<input type=\"submit\"/>"))
-		w.Write([]byte("</form>"))
-		w.Write([]byte("</body></html>"))
+
+		// build action query
+		aq := url.Values{}
+		aq.Add("response_type", string(ar.Type))
+		aq.Add("client_id", ar.Client.GetId())
+		aq.Add("state", ar.State)
+		aq.Add("scope", ar.Scope)
+		aq.Add("redirect_uri", ar.RedirectUri)
+
+		// template variables
+		vars := map[string]interface{}{
+			"SiteName":   "Gourd: Example 2",
+			"FormAction": r.URL.Path + "?" + aq.Encode(),
+		}
+
+		// render the form with vars
+		err = tmpl.Execute(w, vars)
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
 
