@@ -61,7 +61,7 @@ func (s *{{ .Type.Name }}Service) Create(
 
 	//TODO: apply the key to the entity
 	e := ep.(*{{.Type.Name}})
-	e.Id = {{ .Id.Type }}(id.({{ .Id.DbType }}))
+	e.{{ .Id.Name }} = {{ .Id.Type }}(id.({{ .Id.DbType }}))
 
 	return
 }
