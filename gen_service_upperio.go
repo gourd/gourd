@@ -55,7 +55,7 @@ func (s *{{ .Type.Name }}Service) Create(
 	// add the entity to collection
 	id, err := coll.Append(ep)
 	if err != nil {
-		err = service.Errorf(500, err.Error())
+		err = service.Error(500, err.Error())
 		return
 	}
 
@@ -85,7 +85,7 @@ func (s *{{ .Type.Name }}Service) Search(
 	// TODO: also work with c.Cond for ListCond (limit and offset)
 	err = res.All(lp)
 	if err != nil {
-		err = service.Errorf(500, err.Error())
+		err = service.Error(500, err.Error())
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (s *{{ .Type.Name }}Service) One(
 
 	// if not found, report
 	if len(*l) == 0 {
-		err = service.Errorf(404, "Not found")
+		err = service.Error(404, "Not found")
 		return
 	}
 
@@ -131,7 +131,7 @@ func (s *{{ .Type.Name }}Service) Update(
 	// update the matched entities
 	err = res.Update(ep)
 	if err != nil {
-		err = service.Errorf(500, err.Error())
+		err = service.Error(500, err.Error())
 	}
 	return
 }
@@ -153,7 +153,7 @@ func (s *{{ .Type.Name }}Service) Delete(
 	// remove the matched entities
 	err = res.Remove()
 	if err != nil {
-		err = service.Errorf(500, err.Error())
+		err = service.Error(500, err.Error())
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 	// get raw collection
 	coll, err = s.Db.Collection("{{.Coll}}")
 	if err != nil {
-		err = service.Errorf(http.StatusInternalServerError, err.Error())
+		err = service.Error(http.StatusInternalServerError, err.Error())
 	}
 	return 
 }
