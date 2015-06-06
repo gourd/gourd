@@ -11,6 +11,7 @@ func init() {
 		`{{ define "imports" }}"net/http"
 		"github.com/gourd/service"
 		"github.com/gourd/service/upperio"
+		"log"
 		"upper.io/db"{{ end }}`,
 		`{{ define "code" }}
 
@@ -55,7 +56,8 @@ func (s *{{ .Type.Name }}Service) Create(
 	// add the entity to collection
 	id, err := coll.Append(ep)
 	if err != nil {
-		err = service.Error(500, err.Error())
+		log.Printf("Error creating {{ .Type.Name }}: %s", err.Error())
+		err = service.ErrorInternal
 		return
 	}
 
@@ -85,7 +87,7 @@ func (s *{{ .Type.Name }}Service) Search(
 	// TODO: also work with c.Cond for ListCond (limit and offset)
 	err = res.All(lp)
 	if err != nil {
-		err = service.Error(500, err.Error())
+		err = service.ErrorInternal
 	}
 
 	return nil
@@ -104,7 +106,7 @@ func (s *{{ .Type.Name }}Service) One(
 
 	// if not found, report
 	if len(*l) == 0 {
-		err = service.Error(404, "Not found")
+		err = service.ErrorNotFound
 		return
 	}
 
@@ -131,7 +133,8 @@ func (s *{{ .Type.Name }}Service) Update(
 	// update the matched entities
 	err = res.Update(ep)
 	if err != nil {
-		err = service.Error(500, err.Error())
+		log.Printf("Error updating {{ .Type.Name }}: %s", err.Error())
+		err = service.ErrorInternal
 	}
 	return
 }
@@ -153,7 +156,8 @@ func (s *{{ .Type.Name }}Service) Delete(
 	// remove the matched entities
 	err = res.Remove()
 	if err != nil {
-		err = service.Error(500, err.Error())
+		log.Printf("Error deleting {{ .Type.Name }}: %s", err.Error())
+		err = service.ErrorInternal
 	}
 	return nil
 }
@@ -179,7 +183,9 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 	// get raw collection
 	coll, err = s.Db.Collection("{{.Coll}}")
 	if err != nil {
-		err = service.Error(http.StatusInternalServerError, err.Error())
+		log.Printf("Error connecting collection {{.Coll}}: %s",
+			err.Error())
+		err = service.ErrorInternal
 	}
 	return 
 }
