@@ -6,6 +6,7 @@ func init() {
 		`{{ define "imports" }}
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
+	"github.com/gourd/perm"
 	"github.com/gourd/service"
 	"log"
 	"net/http"
@@ -29,9 +30,9 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	}
 
 	// handle permission related issue
-	scopeAllow := func(r *http.Request, respEnc codec.Encoder, act string, info ...interface{}) bool {
-		// will be done with perm package
-		return true
+	permAllow := func(r *http.Request, respEnc codec.Encoder, permission string, info ...interface{}) error {
+		m := perm.GetMux(r)
+		return m.Allow(r, permission, info...)
 	}
 
 	log.Printf("REST path: %s", p)
@@ -67,8 +68,14 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			return
 		}
 
-		if !scopeAllow(r, respEnc, "create "+noun, e) {
-			// test access scope fail, do nothing
+		// check permission
+		if err = permAllow(r, respEnc, "create "+noun, e); err != nil {
+			code, msg := service.ParseError(err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    code,
+				"message": msg,
+			})
 			return
 		}
 
@@ -129,8 +136,13 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 				"status": "error",
 				"code":   http.StatusNotFound,
 			})
-		} else if !scopeAllow(r, respEnc, "load "+noun, el) {
-			// test access scope fail, do nothing
+		} else if err = permAllow(r, respEnc, "load "+noun, el); err != nil {
+			code, msg := service.ParseError(err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    code,
+				"message": msg,
+			})
 			return
 		} else {
 			respEnc.Encode(map[string]interface{}{
@@ -188,8 +200,14 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			return
 		}
 
-		if !scopeAllow(r, respEnc, "update "+noun, el) {
-			// test access scope fail, do nothing
+		// test permission
+		if err = permAllow(r, respEnc, "update "+noun, el); err != nil {
+			code, msg := service.ParseError(err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    code,
+				"message": msg,
+			})
 			return
 		}
 
@@ -236,8 +254,14 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			return
 		}
 
-		if !scopeAllow(r, respEnc, "delete "+noun, el) {
-			// test access scope fail, do nothing
+		// test permission
+		if err = permAllow(r, respEnc, "delete "+noun, el); err != nil {
+			code, msg := service.ParseError(err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    code,
+				"message": msg,
+			})
 			return
 		}
 

@@ -5,7 +5,10 @@ import (
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
 	"github.com/gourd/oauth2"
+	"github.com/gourd/perm"
 	"github.com/gourd/service/upperio"
+	"log"
+	"net/http"
 	"upper.io/db/sqlite"
 )
 
@@ -31,8 +34,23 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// provide access handlers to
 	// NOTE: these are independent to router
-	//ah.Handle("edit post", someAccessHandler)
-	//ah.HandleFunc("edit comment", someAccessHandleFunc)
+	p := perm.NewMux()
+	p.HandleFunc("create post", func(r *http.Request, perm string, info ...interface{}) error {
+		log.Printf("Requesting permission to create post")
+		return nil
+	})
+	p.HandleFunc("load post", func(r *http.Request, perm string, info ...interface{}) error {
+		log.Printf("Requesting permission to load post")
+		return nil
+	})
+	p.HandleFunc("update post", func(r *http.Request, perm string, info ...interface{}) error {
+		log.Printf("Requesting permission to update post")
+		return nil
+	})
+	p.HandleFunc("delete post", func(r *http.Request, perm string, info ...interface{}) error {
+		log.Printf("Requesting permission to delete post")
+		return nil
+	})
 
 	// create router of the specific type
 	rtr := pat.New()
@@ -52,6 +70,7 @@ func gourdServer() (n *negroni.Negroni) {
 	n = negroni.New()
 	n.Use(negroni.Wrap(ch))
 	n.Use(negroni.Wrap(m.Middleware()))
+	n.Use(negroni.Wrap(p))
 
 	// use router in negroni
 	n.UseHandler(rtr)
