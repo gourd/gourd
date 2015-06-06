@@ -9,6 +9,7 @@ import (
 	"github.com/gourd/service/upperio"
 	"log"
 	"net/http"
+	"time"
 	"upper.io/db/sqlite"
 )
 
@@ -19,7 +20,7 @@ import (
 //
 // Should also be a http.Handler that
 // cound be tested by wrapping httptest sevrer
-func gourdServer() (n *negroni.Negroni) {
+func gourdServer() (h http.Handler) {
 
 	// define db
 	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
@@ -67,7 +68,7 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create negroni middleware handler
 	// with middlewares
-	n = negroni.New()
+	n := negroni.New()
 	n.Use(negroni.Wrap(ch))
 	n.Use(negroni.Wrap(m.Middleware()))
 	n.Use(negroni.Wrap(p))
@@ -75,7 +76,7 @@ func gourdServer() (n *negroni.Negroni) {
 	// use router in negroni
 	n.UseHandler(rtr)
 
-	return
+	return n
 }
 
 // gourdMain
@@ -83,8 +84,12 @@ func gourdServer() (n *negroni.Negroni) {
 // gourd generated main
 // feel free to copy the code and change
 func gourdMain() {
-	s := gourdServer()
-	if s != nil {
-		s.Run(":8080") // negroni specific
+	s := &http.Server{
+		Addr:           ":8080",
+		Handler:        gourdServer(),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
+	log.Fatal(s.ListenAndServe())
 }
