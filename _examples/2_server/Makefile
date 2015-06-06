@@ -1,6 +1,7 @@
-export PATH := ${PATH}:../../
+export PATH := ../..:${PATH}
 
 build: prebuild
+	echo "gourd path: `which gourd`"
 	go generate
 
 prebuild:
@@ -13,7 +14,7 @@ prebuild:
 	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
 
 test: build
-	go test
+	go test -v
 
 clean:
 	rm -f *_service.go
