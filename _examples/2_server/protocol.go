@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 )
 
 // ProtoCommon represents a common protocol
@@ -46,6 +47,31 @@ func (r *ProtoPosts) NthValid(n int) (err error) {
 func (r *ProtoPosts) GetNth(n int) (item interface{}, err error) {
 	// return the nth item
 	ps := r.Posts
+
+	// if it is a single item response
+	if r.Post != nil {
+		if n == 0 {
+			log.Printf("run 1")
+			item = r.Post
+			return
+		} else {
+			log.Printf("run 2")
+			err = fmt.Errorf(
+				"n cannot be larger than 0 for single item reponses")
+			return
+		}
+	}
+
+	// check multiple reponse
+	if ps == nil {
+		err = fmt.Errorf("The list is empty")
+		return
+	} else if len(*ps) <= n {
+		err = fmt.Errorf("Nth item doesn't exists in the response")
+		return
+	} else {
+		fmt.Printf("len %d", len(*ps))
+	}
 	item = (*ps)[n]
 	return
 }

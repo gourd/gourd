@@ -47,6 +47,10 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 		ExpectResultNth(0, p1)
 	_, err := t1.Run()
 	p2p, err := proto.GetNth(0)
+	if err != nil {
+		t.Error(err.Error())
+		t.FailNow()
+	}
 	p2 := p2p.(Post) // created post
 
 	// test retrieve single
