@@ -16,10 +16,10 @@ import (
 type Post struct {
 
 	// This is Id
-	Id int32 `db:"id,omitempty" json:"id"`
+	ID int32 `db:"id,omitempty" json:"id"`
 
 	// This is User ID
-	Uid int32 `db:"uid" json:"uid"`
+	UID int32 `db:"uid" json:"uid"`
 
 	// title of the post
 	Title string `db:"title" json:"title"`

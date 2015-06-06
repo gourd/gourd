@@ -14,7 +14,7 @@ func init() {
 		`{{ define "code" }}
 
 
-// dummy rest binder
+// {{ .Type.Name }}Rest binds service to pat router
 func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// define paths

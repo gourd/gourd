@@ -19,7 +19,7 @@ func gourdTestServer() (ts *httptest.Server) {
 func dummyNewPost() (p Post) {
 	s := rand.NewSource(99)
 	return Post{
-		Uid:   rand.New(s).Int31(),
+		UID:   rand.New(s).Int31(),
 		Title: fmt.Sprintf("Dummy Post %d", rand.New(s).Int31()),
 		Body:  fmt.Sprintf("Dummy Body %d", rand.New(s).Int31()),
 		Size:  rand.New(s).Int63(),
@@ -50,7 +50,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 	p2 := p2p.(Post) // created post
 
 	// test retrieve single
-	t2 := post.Retrieve(fmt.Sprintf("%d", p2.Id)).
+	t2 := post.Retrieve(fmt.Sprintf("%d", p2.ID)).
 		WithResponseAs(proto).
 		ExpectResultCountNot(0)
 	_, err = t2.Run()
@@ -63,15 +63,15 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 
 	// test update, then retrieve single to compare
 	p3 := dummyNewPost()
-	p3.Id = p2.Id
-	t3 := post.Update(fmt.Sprintf("%d", p3.Id), p3).
+	p3.ID = p2.ID
+	t3 := post.Update(fmt.Sprintf("%d", p3.ID), p3).
 		WithResponseAs(proto).
 		ExpectStatus(200)
 	_, err = t3.Run()
 	if err != nil {
 		t.Error(err.Error())
 	}
-	t4 := post.Retrieve(fmt.Sprintf("%d", p3.Id)).
+	t4 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
 		WithResponseAs(proto).
 		ExpectStatus(200). // Success
 		ExpectResultCount(1).
@@ -82,14 +82,14 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 	}
 
 	// test delete
-	t5 := post.Delete(fmt.Sprintf("%d", p3.Id)).
+	t5 := post.Delete(fmt.Sprintf("%d", p3.ID)).
 		WithResponseAs(proto).
 		ExpectStatus(200)
 	_, err = t5.Run()
 	if err != nil {
 		t.Error(err.Error())
 	}
-	t6 := post.Retrieve(fmt.Sprintf("%d", p3.Id)).
+	t6 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
 		WithResponseAs(proto) // Not found anymore
 	_, err = t6.Run()
 	if err != nil {

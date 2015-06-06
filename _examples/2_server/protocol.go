@@ -21,6 +21,7 @@ type ProtoPosts struct {
 	Post   *Post   `json:"post,omitempty"`
 }
 
+// Count counts the number of item in the protocol entity list
 func (r *ProtoPosts) Count() int {
 	if r.Posts == nil {
 		return 0
@@ -29,6 +30,7 @@ func (r *ProtoPosts) Count() int {
 	return len(*ps)
 }
 
+// NthValid examines if the nth item in the entity list is valid
 func (r *ProtoPosts) NthValid(n int) (err error) {
 	// some test to see nth record is valid
 	// such as:
@@ -40,6 +42,7 @@ func (r *ProtoPosts) NthValid(n int) (err error) {
 	return
 }
 
+// GetNth retrieve the nth item from entity list
 func (r *ProtoPosts) GetNth(n int) (item interface{}, err error) {
 	// return the nth item
 	ps := r.Posts
@@ -47,32 +50,35 @@ func (r *ProtoPosts) GetNth(n int) (item interface{}, err error) {
 	return
 }
 
+// Match test if the given 2 items matches each other
 func (r *ProtoPosts) Match(a interface{}, b interface{}) (err error) {
 
 	// cast a and b back to Post
-	real_a := a.(Post)
-	real_b := b.(Post)
+	realA := a.(Post)
+	realB := b.(Post)
 
-	if real_a.Id != real_b.Id && real_a.Id != 0 && real_b.Id != 0 {
+	if realA.ID != realB.ID && realA.ID != 0 && realB.ID != 0 {
 		// if either ID is 0, do not check id match
-		err = fmt.Errorf("Id not match")
-	} else if real_a.Uid != real_b.Uid {
-		err = fmt.Errorf("Uid not match")
-	} else if real_a.Title != real_b.Title {
+		err = fmt.Errorf("ID not match")
+	} else if realA.UID != realB.UID {
+		err = fmt.Errorf("UID not match")
+	} else if realA.Title != realB.Title {
 		err = fmt.Errorf("Title not match")
-	} else if real_a.Body != real_b.Body {
+	} else if realA.Body != realB.Body {
 		err = fmt.Errorf("Body not match")
-	} else if real_a.Size != real_b.Size {
+	} else if realA.Size != realB.Size {
 		err = fmt.Errorf("Size not match")
-	} else if real_a.Date.Unix() != real_b.Date.Unix() {
+	} else if realA.Date.Unix() != realB.Date.Unix() {
 		err = fmt.Errorf("Date not match")
 	}
 
 	return
 }
 
+// Reset reset the current list
 func (r *ProtoPosts) Reset() {
 	r.Status = ""
-	ps := make([]Post, 0)
+	var ps []Post
 	r.Posts = &ps
+	r.Post = nil
 }

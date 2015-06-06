@@ -11,10 +11,10 @@ import (
 type Comment struct {
 
 	// This is Id of cmment
-	Id int32 `db:"id"`
+	ID int32 `db:"id"`
 
 	// This is Post ID
-	PostId int32 `db:"post_id"`
+	PostID int32 `db:"post_id"`
 
 	// title of the post
 	Title string `db:"title" json:"title"`

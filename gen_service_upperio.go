@@ -167,7 +167,7 @@ func (s *{{ .Type.Name }}Service) AllocEntity() service.EntityPtr {
 	return &{{ .Type.Name }}{}
 }
 
-// AllocEntity allocate memory for an entity list
+// AllocEntityList allocate memory for an entity list
 func (s *{{ .Type.Name }}Service) AllocEntityList() service.EntityListPtr {
 	return &[]{{ .Type.Name }}{}
 }
