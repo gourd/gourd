@@ -38,19 +38,35 @@ func gourdServer() (h http.Handler) {
 	p := perm.NewMux()
 	p.HandleFunc("create post", func(r *http.Request, perm string, info ...interface{}) error {
 		log.Printf("Requesting permission to create post")
-		return nil
+		a, err := oauth2.GetAccess(r)
+		if err == nil {
+			log.Printf("Access: %#v", a)
+		}
+		return err
 	})
 	p.HandleFunc("load post", func(r *http.Request, perm string, info ...interface{}) error {
 		log.Printf("Requesting permission to load post")
-		return nil
+		a, err := oauth2.GetAccess(r)
+		if err == nil {
+			log.Printf("Access: %#v", a)
+		}
+		return err
 	})
 	p.HandleFunc("update post", func(r *http.Request, perm string, info ...interface{}) error {
 		log.Printf("Requesting permission to update post")
-		return nil
+		a, err := oauth2.GetAccess(r)
+		if err == nil {
+			log.Printf("Access: %#v", a)
+		}
+		return err
 	})
 	p.HandleFunc("delete post", func(r *http.Request, perm string, info ...interface{}) error {
 		log.Printf("Requesting permission to delete post")
-		return nil
+		a, err := oauth2.GetAccess(r)
+		if err == nil {
+			log.Printf("Access: %#v", a)
+		}
+		return err
 	})
 
 	// create router of the specific type

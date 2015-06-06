@@ -1,10 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/gorilla/pat"
+	"github.com/gourd/oauth2"
+	"github.com/gourd/service"
 	"github.com/yookoala/restit"
+	"log"
 	"math/rand"
+	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -14,6 +22,43 @@ func gourdTestServer() (ts *httptest.Server) {
 	s := gourdServer()
 	ts = httptest.NewServer(s)
 	return
+}
+
+func dummyNewUser(password string) *oauth2.User {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	randSeq := func(n int) string {
+		b := make([]rune, n)
+		for i := range b {
+			b[i] = letters[rand.Intn(len(letters))]
+		}
+		return string(b)
+	}
+
+	u := &oauth2.User{
+		Username: randSeq(10),
+	}
+	u.Password = u.Hash(password)
+	return u
+}
+
+func dummyNewClient(redirectUri string) *oauth2.Client {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	randSeq := func(n int) string {
+		b := make([]rune, n)
+		for i := range b {
+			b[i] = letters[rand.Intn(len(letters))]
+		}
+		return string(b)
+	}
+
+	return &oauth2.Client{
+		StrId:       randSeq(10),
+		Secret:      randSeq(10),
+		RedirectUri: redirectUri,
+		UserId:      0,
+	}
 }
 
 func dummyNewPost() (p Post) {
@@ -27,10 +72,177 @@ func dummyNewPost() (p Post) {
 	}
 }
 
+// example client web app in the login
+func testOAuth2ClientApp(path string) http.Handler {
+	rtr := pat.New()
+
+	// add dummy client reception of redirection
+	rtr.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		enc := json.NewEncoder(w)
+		enc.Encode(map[string]string{
+			"code":  r.Form.Get("code"),
+			"token": r.Form.Get("token"),
+		})
+	})
+
+	return rtr
+}
+
+// test oauth2
+func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
+
+	// create test client server
+	tcsbase := "/example_app/"
+	tcspath := tcsbase + "code"
+	tcs := httptest.NewServer(testOAuth2ClientApp(tcspath))
+	defer tcs.Close()
+
+	// a dummy password for dummy user
+	password := "password"
+
+	// create dummy oauth client and user
+	c, u := func(tcs *httptest.Server, password, redirect string) (*oauth2.Client, *oauth2.User) {
+		r := &http.Request{}
+
+		// generate dummy user
+		us, err := service.Providers.MustGet("User")(r)
+		if err != nil {
+			panic(err)
+		}
+		u := dummyNewUser(password)
+		err = us.Create(service.NewConds(), u)
+		if err != nil {
+			panic(err)
+		}
+
+		// get related dummy client
+		cs, err := service.Providers.MustGet("Client")(r)
+		if err != nil {
+			panic(err)
+		}
+		c := dummyNewClient(redirect)
+		c.UserId = u.Id
+		err = cs.Create(service.NewConds(), c)
+		if err != nil {
+			panic(err)
+		}
+
+		return c, u
+	}(tcs, password, tcs.URL+tcsbase)
+
+	// build user request to authorization endpoint
+	// get response from client web app redirect uri
+	code, err := func(c *oauth2.Client, u *oauth2.User, password, redirect string) (code string, err error) {
+
+		log.Printf("Test retrieving code ====")
+
+		// login form
+		form := url.Values{}
+		form.Add("username", u.Username)
+		form.Add("password", password)
+		log.Printf("form send: %s", form.Encode())
+
+		// build the query string
+		q := &url.Values{}
+		q.Add("response_type", "code")
+		q.Add("client_id", c.StrId)
+		q.Add("redirect_uri", redirect)
+
+		req, err := http.NewRequest("POST",
+			ts.URL+"/oauth/authorize"+"?"+q.Encode(),
+			strings.NewReader(form.Encode()))
+		if err != nil {
+			err = fmt.Errorf("Failed to form new request: %s", err.Error())
+			return
+		}
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+		// new http client to emulate user request
+		hc := &http.Client{}
+		resp, err := hc.Do(req)
+		if err != nil {
+			err = fmt.Errorf("Failed run the request: %s", err.Error())
+		}
+
+		log.Printf("Response.Request: %#v", resp.Request.URL)
+
+		// request should be redirected to client app with code
+		// the testing client app response with a json containing "code"
+		// decode the client app json and retrieve the code
+		bodyDecoded := make(map[string]string)
+		dec := json.NewDecoder(resp.Body)
+		dec.Decode(&bodyDecoded)
+		var ok bool
+		if code, ok = bodyDecoded["code"]; !ok {
+			err = fmt.Errorf("Client app failed to retrieve code in the redirection")
+		}
+		log.Printf("Response Body: %#v", bodyDecoded["code"])
+
+		return
+	}(c, u, password, tcs.URL+tcspath)
+
+	// quite if error
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	// retrieve token from token endpoint
+	// get response from client web app redirect uri
+	token, err = func(c *oauth2.Client, code, redirect string) (token string, err error) {
+
+		log.Printf("Test retrieving token ====")
+
+		// build user request to token endpoint
+		form := &url.Values{}
+		form.Add("code", code)
+		form.Add("client_id", c.StrId)
+		form.Add("client_secret", c.Secret)
+		form.Add("grant_type", "authorization_code")
+		form.Add("redirect_uri", redirect)
+		req, err := http.NewRequest("POST",
+			ts.URL+"/oauth/token",
+			strings.NewReader(form.Encode()))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		if err != nil {
+			t.Errorf("Failed to form new request: %s", err.Error())
+		}
+
+		// new http client to emulate user request
+		hc := &http.Client{}
+		resp, err := hc.Do(req)
+		if err != nil {
+			err = fmt.Errorf("Failed run the request: %s", err.Error())
+		}
+
+		// read token from token endpoint response (json)
+		bodyDecoded := make(map[string]string)
+		dec := json.NewDecoder(resp.Body)
+		dec.Decode(&bodyDecoded)
+
+		log.Printf("Response Body: %#v", bodyDecoded)
+		var ok bool
+		if token, ok = bodyDecoded["access_token"]; !ok {
+			err = fmt.Errorf(
+				"Unable to parse access_token: %s", err.Error())
+		}
+		return
+
+	}(c, code, tcs.URL+tcspath)
+
+	// quit if error
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	return token
+
+}
+
 // common rest test
-func testRest(t *testing.T, proto restit.Response, name, path string) {
-	ts := gourdTestServer()
-	defer ts.Close()
+func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Response, name, path string) {
 
 	// some dummy posts
 	p1 := dummyNewPost()
@@ -41,6 +253,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 
 	// test create
 	t1 := posts.Create(&p1).
+		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectResultCount(1).
 		ExpectResultsValid().
@@ -55,6 +268,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 
 	// test retrieve single
 	t2 := post.Retrieve(fmt.Sprintf("%d", p2.ID)).
+		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectResultCountNot(0)
 	_, err = t2.Run()
@@ -69,6 +283,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 	p3 := dummyNewPost()
 	p3.ID = p2.ID
 	t3 := post.Update(fmt.Sprintf("%d", p3.ID), p3).
+		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectStatus(200)
 	_, err = t3.Run()
@@ -76,6 +291,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 		t.Error(err.Error())
 	}
 	t4 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
+		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectStatus(200). // Success
 		ExpectResultCount(1).
@@ -87,6 +303,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 
 	// test delete
 	t5 := post.Delete(fmt.Sprintf("%d", p3.ID)).
+		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectStatus(200)
 	_, err = t5.Run()
@@ -94,6 +311,7 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 		t.Error(err.Error())
 	}
 	t6 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
+		AddHeader("Authority", token).
 		WithResponseAs(proto) // Not found anymore
 	_, err = t6.Run()
 	if err != nil {
@@ -104,5 +322,15 @@ func testRest(t *testing.T, proto restit.Response, name, path string) {
 
 // testing the gourd generated server
 func TestMainPosts(t *testing.T) {
-	testRest(t, &ProtoPosts{}, "Post", "/api/posts")
+	ts := gourdTestServer()
+	defer ts.Close()
+
+	token := testOAuth2(t, ts)
+	if token == "" {
+		t.Error("Failed to obtain security token")
+		t.FailNow()
+		return
+	}
+	log.Printf("token: %s", token)
+	testRest(t, ts, token, &ProtoPosts{}, "Post", "/api/posts")
 }
