@@ -1,11 +1,10 @@
 package main
 
 import (
-	"github.com/RangelReale/osin"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
-	"github.com/gourd/service"
+	"github.com/gourd/oauth2"
 	"github.com/gourd/service/upperio"
 	"upper.io/db/sqlite"
 )
@@ -26,31 +25,9 @@ func gourdServer() (n *negroni.Negroni) {
 
 	// create router specific / independent middleware
 	ch := &codec.Handler{}
-	ah := &OAuth2Handler{} // will be handled by another gourd repo
 
-	// provide services to auth storage
-	// NOTE: these are independent to router
-	as := &OAuth2Storage{}
-	as.UseClientFrom(service.Providers.MustGet("Client"))
-	as.UseAuthFrom(service.Providers.MustGet("AuthorizeData"))
-	as.UseAccessFrom(service.Providers.MustGet("AccessData"))
-	as.UseUserFrom(service.Providers.MustGet("User"))
-	ah.UseStorage(as)
-
-	// provide storage to osin server
-	// provide osin server to OAuth2Handler
-	cfg := osin.NewServerConfig()
-	cfg.AllowGetAccessRequest = true
-	cfg.AllowClientSecretInParams = true
-	cfg.AllowedAccessTypes = osin.AllowedAccessType{
-		osin.AUTHORIZATION_CODE,
-		osin.REFRESH_TOKEN,
-	}
-	cfg.AllowedAuthorizeTypes = osin.AllowedAuthorizeType{
-		osin.CODE,
-		osin.TOKEN,
-	}
-	ah.InitOsin(cfg)
+	// oauth2 manager with default settings
+	m := oauth2.NewManager()
 
 	// provide access handlers to
 	// NOTE: these are independent to router
@@ -63,23 +40,7 @@ func gourdServer() (n *negroni.Negroni) {
 	// add services rest to router
 	PostServiceRest(rtr, "/api", "post", "posts")
 	CommentServiceRest(rtr, "/api", "comment", "comments")
-
-	// add oauth2 endpoints to router
-	// ServeEndpoints bind OAuth2 endpoints to a given base path
-	// Note: this is router specific and need to be generated somehow
-	func(rtr *pat.Router, h *OAuth2Handler, base string) {
-
-		// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
-		ep := h.GetEndpoints()
-
-		// bind handler with pat
-		// TODO: generate this, or allow injection
-		rtr.Get(base+"/authorize", ep.Auth)
-		rtr.Post(base+"/authorize", ep.Auth)
-		rtr.Get(base+"/token", ep.Token)
-		rtr.Post(base+"/token", ep.Token)
-
-	}(rtr, ah, "/oauth")
+	oauth2.RoutePat(rtr, "/oauth", m.GetEndpoints())
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form
@@ -90,7 +51,7 @@ func gourdServer() (n *negroni.Negroni) {
 	// with middlewares
 	n = negroni.New()
 	n.Use(negroni.Wrap(ch))
-	n.Use(negroni.Wrap(ah.ServeScopes()))
+	n.Use(negroni.Wrap(m.Middleware()))
 
 	// use router in negroni
 	n.UseHandler(rtr)

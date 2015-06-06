@@ -30,24 +30,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// handle permission related issue
 	scopeAllow := func(r *http.Request, respEnc codec.Encoder, act string, info ...interface{}) bool {
-		s, ok := GetScopesOk(r)
-		if !ok {
-			log.Printf("Error loading scopes of current session")
-			respEnc.Encode(map[string]interface{}{
-				"status":  "error",
-				"code":    http.StatusInternalServerError,
-				"message": "Server error. Please try again later",
-			})
-			return false
-		} else if err := s.Allow(act, info...); err != nil {
-			log.Printf("Permission denied")
-			respEnc.Encode(map[string]interface{}{
-				"status":  "error",
-				"code":    http.StatusForbidden,
-				"message": err.Error(),
-			})
-			return false
-		}
+		// will be done with perm package
 		return true
 	}
 
