@@ -9,7 +9,11 @@ import (
 var app *cli.App
 var now time.Time
 
+// VERSION stores the version string of this library
 const VERSION = "0.1dev"
+
+// TIMEFORMAT stores the time format to be used in
+// timestamp generation
 const TIMEFORMAT = "2006/01/02 15:04:05 (-0700)"
 
 func init() {

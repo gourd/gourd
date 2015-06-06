@@ -155,7 +155,7 @@ func (t *Template) Execute(out io.Writer, data interface{}) error {
 	return t.Rendered.Execute(out, data)
 }
 
-// format a generated file
+// FormatFile formats a generated file with go formatter
 func FormatFile(fn string) error {
 	return exec.Command("go", "fmt", fn).Run()
 }

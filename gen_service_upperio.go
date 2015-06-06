@@ -231,6 +231,8 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 
 }
 
+// UpperFieldSpec represents information of an upper field.
+// Includes its original field spec and database type suggestion
 type UpperFieldSpec struct {
 	*goparser.FieldSpec
 	DbType string // type of id returned by upperio
