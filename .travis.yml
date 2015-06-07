@@ -3,6 +3,8 @@ language: go
 install:
   - sudo apt-get install sqlite3
   - go get github.com/gourd/codec
+  - go get github.com/gourd/oauth2
+  - go get github.com/gourd/perm
   - go get github.com/gourd/service
   - go get github.com/gourd/service/upperio
   - go get github.com/gourd/goparser
