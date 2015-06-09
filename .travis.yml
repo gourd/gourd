@@ -2,21 +2,8 @@ language: go
 
 install:
   - sudo apt-get install sqlite3
-  - go get github.com/gourd/codec
-  - go get github.com/gourd/oauth2
-  - go get github.com/gourd/perm
-  - go get github.com/gourd/service
   - go get github.com/gourd/service/upperio
-  - go get github.com/gourd/goparser
-  - go get github.com/gorilla/pat
-  - go get github.com/codegangsta/negroni
-  - go get github.com/RangelReale/osin
-  - go get github.com/mattn/go-sqlite3
-  - go get menteslibres.net/gosexy/to
-  - go get upper.io/cache
-  - go get upper.io/db
   - go get upper.io/db/sqlite
-  - go get github.com/yookoala/restit
   - go get ./...
 
 go:
