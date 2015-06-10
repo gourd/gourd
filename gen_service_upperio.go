@@ -89,6 +89,14 @@ func (s *{{ .Type.Name }}Service) Search(
 		res = coll.Find(db.Cond(cond))
 	}
 
+	// handle paging
+	if c.GetOffset() != 0 {
+		res = res.Skip(uint(c.GetOffset()))
+	}
+	if c.GetLimit() != 0 {
+		res = res.Limit(uint(c.GetLimit()))
+	}
+
 	// TODO: also work with c.Cond for ListCond (limit and offset)
 	err = res.All(lp)
 	if err != nil {
