@@ -10,6 +10,7 @@ func init() {
 	"github.com/gourd/service"
 	"log"
 	"net/http"
+	"strconv"
 {{ end }}`,
 		`{{ define "code" }}
 
@@ -20,6 +21,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	// define paths
 	p := base + "/" + nounp
 	ep := base + "/" + noun + "/{id}"
+	epp := base + "/" + nounp
 
 	// way to identify the key condition (for update, retrieve and delete)
 	getKeyCond := func(r *http.Request) (cond service.Conds) {
@@ -153,7 +155,81 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		}
 	})
 
-	// TODO: Retrieve list
+	// Retrieve list
+	r.Get(epp, func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		// get service
+		sr, err := Get{{ .Type.Name }}(r)
+		s, _ := sr.(*{{ .Type.Name }})
+		if err != nil {
+			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			return
+		}
+
+		// allocate memory for variables
+		el := s.AllocEntityList()
+
+		// assign encoder and decoder
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
+		// parse paging request parameter
+		offset, limit := func (r *http.Request) (o, l uint64) {
+			ostr := r.Form.Get("offset")
+			lstr := r.Form.Get("limit")
+			if ostr == "" {
+				if ot, err := strconv.ParseUint(ostr, 10, 64); err == nil {
+					o = ot
+				}
+			}
+			if lstr == "" {
+				if lt, err := strconv.ParseUint(ostr, 10, 64); err == nil {
+					l = lt
+				}
+			}
+			return
+		}(r)
+
+		// retrieve
+		cond := service.NewConds()
+		cond.SetOffset(offset)
+		cond.SetLimit(limit)
+		cond.Add("1 =", 1)
+		log.Printf("Retrieve list!!!! %#v", cond)
+
+		err = s.Search(cond, el)
+		if err != nil {
+			log.Printf("Error searching %s: %s", noun, err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusBadRequest,
+				"message": "Failed to find entity",
+			})
+			return
+		}
+
+		// encode response
+		if s.Len(el) == 0 {
+			respEnc.Encode(map[string]interface{}{
+				"status": "error",
+				"code":   http.StatusNotFound,
+			})
+		} else if err = permAllow(r, respEnc, "list "+noun, el); err != nil {
+			code, msg := service.ParseError(err)
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    code,
+				"message": msg,
+			})
+			return
+		} else {
+			respEnc.Encode(map[string]interface{}{
+				"status": "success",
+				"code":   http.StatusOK,
+				nounp:    el,
+			})
+		}
+	})
 
 	// Update
 	r.Put(ep, func(w http.ResponseWriter, r *http.Request) {
