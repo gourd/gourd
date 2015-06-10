@@ -46,6 +46,7 @@ func gourdServer() (h http.Handler) {
 	}
 	p.HandleFunc("create post", requireAccess)
 	p.HandleFunc("load post", requireAccess)
+	p.HandleFunc("list post", requireAccess)
 	p.HandleFunc("update post", requireAccess)
 	p.HandleFunc("delete post", requireAccess)
 

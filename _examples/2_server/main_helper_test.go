@@ -251,6 +251,18 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Resp
 	posts := restit.Rest("Post", ts.URL+"/api/posts")
 	post := restit.Rest("Post", ts.URL+"/api/post")
 
+	var err error
+
+	// test list
+	t0 := posts.Retrieve("").
+		AddHeader("Authority", token).
+		WithResponseAs(proto).
+		ExpectResultCount(0)
+	_, err = t0.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
 	// test create
 	t1 := posts.Create(&p1).
 		AddHeader("Authority", token).
@@ -258,7 +270,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Resp
 		ExpectResultCount(1).
 		ExpectResultsValid().
 		ExpectResultNth(0, p1)
-	_, err := t1.Run()
+	_, err = t1.Run()
 	p2p, err := proto.GetNth(0)
 	if err != nil {
 		t.Error(err.Error())
@@ -276,7 +288,16 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Resp
 		t.Error(err.Error())
 	}
 
-	// TODO: test retrieve list, expecte to have non-zero count
+	// test retrieve list
+	t2b := posts.Retrieve("").
+		AddHeader("Authority", token).
+		WithResponseAs(proto).
+		ExpectResultCountNot(0)
+	_, err = t2b.Run()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// TODO: test retrieve list with dummy title
 
 	// test update, then retrieve single to compare
