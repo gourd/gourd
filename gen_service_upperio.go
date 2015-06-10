@@ -82,7 +82,12 @@ func (s *{{ .Type.Name }}Service) Search(
 	cond, _ := c.GetMap()
 
 	// retrieve all users
-	res := coll.Find(db.Cond(cond))
+	var res db.Result
+	if len(cond) == 0 {
+		res = coll.Find()
+	} else {
+		res = coll.Find(db.Cond(cond))
+	}
 
 	// TODO: also work with c.Cond for ListCond (limit and offset)
 	err = res.All(lp)
