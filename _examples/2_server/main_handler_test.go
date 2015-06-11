@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/gourd/oauth2"
+	"github.com/gourd/service"
+	"github.com/gourd/service/upperio"
+
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/pat"
-	"github.com/gourd/oauth2"
-	"github.com/gourd/service"
 	"github.com/yookoala/restit"
 	"log"
 	"math/rand"
@@ -15,12 +17,18 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"upper.io/db/sqlite"
 )
 
 // could be used repeatedly for different unit test
-func gourdTestServer() (ts *httptest.Server) {
-	s := gourdServer()
-	ts = httptest.NewServer(s)
+func mainTestServer() (ts *httptest.Server) {
+
+	// define db
+	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
+		Database: `./data/sqlite3.db`,
+	})
+
+	ts = httptest.NewServer(MainHandler())
 	return
 }
 
@@ -343,7 +351,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Resp
 
 // testing the gourd generated server
 func TestMainPosts(t *testing.T) {
-	ts := gourdTestServer()
+	ts := mainTestServer()
 	defer ts.Close()
 
 	token := testOAuth2(t, ts)

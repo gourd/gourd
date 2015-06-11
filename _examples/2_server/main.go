@@ -1,6 +1,13 @@
+//go:generate gourd gen main $GOFILE
 package main
 
-//go:generate gourd gen main $GOFILE
+import (
+	"github.com/gourd/service/upperio"
+
+	"net/http"
+	"os"
+	"upper.io/db/sqlite"
+)
 
 // port to use
 var port string
@@ -22,10 +29,16 @@ func init() {
 //gourd:rest /api/comments Comment
 //
 func main() {
-	// use the gourd generated main (gourdMain)
-	// alternatively, user may copy the content of gourdMain
+
+	// define db
+	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
+		Database: `./data/sqlite3.db`,
+	})
+
+	// use the MainHandler (should be gourd generated)
+	// alternatively, user may copy the content of MainHandler
 	// here then modify
-	http.HandleFunc("/", MainHandler())
+	http.Handle("/", MainHandler())
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)

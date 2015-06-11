@@ -6,11 +6,8 @@ import (
 	"github.com/gourd/codec"
 	"github.com/gourd/oauth2"
 	"github.com/gourd/perm"
-	"github.com/gourd/service/upperio"
 	"log"
 	"net/http"
-	"time"
-	"upper.io/db/sqlite"
 )
 
 // MainHandler
@@ -21,11 +18,6 @@ import (
 // Should also be a http.Handler that
 // cound be tested by wrapping httptest sevrer
 func MainHandler() http.Handler {
-
-	// define db
-	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
-		Database: `./data/sqlite3.db`,
-	})
 
 	// create router specific / independent middleware
 	ch := &codec.Handler{}
