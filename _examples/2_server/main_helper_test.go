@@ -106,7 +106,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		r := &http.Request{}
 
 		// generate dummy user
-		us, err := service.Providers.MustGet("User")(r)
+		us, err := service.Providers.Service(r, "User")
 		if err != nil {
 			panic(err)
 		}
@@ -117,7 +117,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		}
 
 		// get related dummy client
-		cs, err := service.Providers.MustGet("Client")(r)
+		cs, err := service.Providers.Service(r, "Client")
 		if err != nil {
 			panic(err)
 		}

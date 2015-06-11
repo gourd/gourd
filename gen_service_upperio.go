@@ -17,7 +17,10 @@ func init() {
 
 
 func init() {
-	service.Providers.Define("{{ .Type.Name }}", Get{{ .Type.Name }}Service)
+	// define service provider with proxy
+	service.Providers.DefineFunc("{{ .Type.Name }}", func (r *http.Request) (s service.Service, err error) {
+		return Get{{ .Type.Name }}Service(r)
+	})
 }
 
 // Get{{ .Type.Name }}Service implements service.ProviderFunc
