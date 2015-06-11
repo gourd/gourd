@@ -23,8 +23,8 @@ func init() {
 	})
 }
 
-// Get{{ .Type.Name }}Service implements service.ProviderFunc
-func Get{{ .Type.Name }}Service(r *http.Request) (s service.Service, err error) {
+// Get{{ .Type.Name }}Service provides raw {{ .Type.Name }}Service
+func Get{{ .Type.Name }}Service(r *http.Request) (s *{{ .Type.Name }}Service, err error) {
 
 	// obtain database
 	db, err := upperio.Open(r, "default")

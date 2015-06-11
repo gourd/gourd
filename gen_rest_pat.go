@@ -44,8 +44,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		var err error
 
 		// get service
-		sr, err := Get{{ .Type.Name }}(r)
-		s, _ := sr.(*{{ .Type.Name }})
+		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
@@ -106,8 +105,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		var err error
 
 		// get service
-		sr, err := Get{{ .Type.Name }}(r)
-		s, _ := sr.(*{{ .Type.Name }})
+		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
@@ -160,8 +158,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		var err error
 
 		// get service
-		sr, err := Get{{ .Type.Name }}(r)
-		s, _ := sr.(*{{ .Type.Name }})
+		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
@@ -236,8 +233,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		var err error
 
 		// get service
-		sr, err := Get{{ .Type.Name }}(r)
-		s, _ := sr.(*{{ .Type.Name }})
+		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
@@ -303,8 +299,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		var err error
 
 		// get service
-		sr, err := Get{{ .Type.Name }}(r)
-		s, _ := sr.(*{{ .Type.Name }})
+		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
