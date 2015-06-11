@@ -1,11 +1,12 @@
 export PATH := ../..:${PATH}
 
-build: prebuild
-	echo "gourd path: `which gourd`"
-	go generate
-
-prebuild: flag.get_deps
+build: generate
 	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
+	go build
+
+generate:
+	echo "generateing with gourd: `which gourd`"
+	go generate
 
 flag.get_deps:
 	go get -u github.com/codegangsta/negroni
@@ -19,7 +20,8 @@ flag.get_deps:
 	go get -u github.com/yookoala/restit
 	touch flag.get_deps
 
-test: build
+test: flag.get_deps generate
+	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
 	go test -v
 
 clean:
@@ -27,4 +29,4 @@ clean:
 	rm -f *_service_rest.go
 	rm -f flag.*
 
-.PHONY: build prebuild test clean
+.PHONY: build generate test clean
