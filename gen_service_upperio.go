@@ -11,6 +11,11 @@ func init() {
 		`{{ define "imports" }}"net/http"
 		"github.com/gourd/service"
 		"github.com/gourd/service/upperio"
+		{{ if .Id.IsString }}
+		"github.com/satori/go.uuid"
+		"encoding/base64"
+		"strings"
+		{{ end }}
 		"log"
 		"upper.io/db"{{ end }}`,
 		`{{ define "code" }}
@@ -53,20 +58,34 @@ func (s *{{ .Type.Name }}Service) Create(
 		return
 	}
 
+	// apply random uuid string to string id
+	{{ if .Id.IsString }}
+	uid := uuid.NewV4()
+	e := ep.(*{{.Type.Name}})
+	e.{{ .Id.Name }} = strings.TrimRight(base64.URLEncoding.EncodeToString(uid[:]), "=")
+	{{ end }}
+
+
 	//TODO: convert cond into parentkey and
 	//      enforce to the entity
 
 	// add the entity to collection
+	{{ if .Id.IsString }}
+	_, err = coll.Append(ep)
+	{{ else }}
 	id, err := coll.Append(ep)
+	{{ end }}
 	if err != nil {
 		log.Printf("Error creating {{ .Type.Name }}: %s", err.Error())
 		err = service.ErrorInternal
 		return
 	}
 
-	//TODO: apply the key to the entity
+	{{ if .Id.IsString }}{{ else }}
+	// apply the key to the entity
 	e := ep.(*{{.Type.Name}})
 	e.{{ .Id.Name }} = {{ .Id.Type }}(id.(int64))
+	{{ end }}
 
 	return
 }
@@ -250,5 +269,7 @@ func (s UpperFieldSpec) IsString() bool {
 }
 
 func (s *UpperFieldSpec) IsInt() bool {
-	return false
+	return s.Type == "int" || s.Type == "uint" ||
+		s.Type == "int32" || s.Type == "uint32" ||
+		s.Type == "int64" || s.Type == "uint64"
 }
