@@ -66,7 +66,7 @@ func (s *{{ .Type.Name }}Service) Create(
 
 	//TODO: apply the key to the entity
 	e := ep.(*{{.Type.Name}})
-	e.{{ .Id.Name }} = {{ .Id.Type }}(id.({{ .Id.DbType }}))
+	e.{{ .Id.Name }} = {{ .Id.Type }}(id.(int64))
 
 	return
 }
@@ -229,17 +229,9 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 			return in, fmt.Errorf("Unable to prepare. Wrong Id type: %#v", f)
 		}
 
-		// determine database return type
-		// case by case
-		dbtype := "int64"
-		if id.Type == "string" {
-			dbtype = "string"
-		}
-
 		// override the field spec
 		data["Id"] = &UpperFieldSpec{
 			id,
-			dbtype,
 		}
 		return data, nil
 
@@ -251,5 +243,12 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 // Includes its original field spec and database type suggestion
 type UpperFieldSpec struct {
 	*goparser.FieldSpec
-	DbType string // type of id returned by upperio
+}
+
+func (s UpperFieldSpec) IsString() bool {
+	return s.Type == "string"
+}
+
+func (s *UpperFieldSpec) IsInt() bool {
+	return false
 }
