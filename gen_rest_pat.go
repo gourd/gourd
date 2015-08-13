@@ -191,7 +191,6 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		cond := service.NewConds()
 		cond.SetOffset(offset)
 		cond.SetLimit(limit)
-		cond.Add("1 =", 1)
 		log.Printf("Retrieve list!!!! %#v", cond)
 
 		err = s.Search(cond, el)
