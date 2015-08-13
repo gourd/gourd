@@ -43,19 +43,24 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	r.Post(p, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// assign encoder and decoder
+		reqtDec, _ := codec.GetDecoderOk(r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
 		// get service
 		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Internal Server Error",
+			})
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
 		}
 
 		// allocate entity
 		e := s.AllocEntity()
-
-		// assign encoder and decoder
-		reqtDec, _ := codec.GetDecoderOk(r)
-		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -104,18 +109,23 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	r.Get(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// assign encoder and decoder
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
 		// get service
 		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Internal Server Error",
+			})
 			return
 		}
 
 		// allocate memory for variables
 		el := s.AllocEntityList()
-
-		// assign encoder and decoder
-		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// retrieve
 		cond := getKeyCond(r)
@@ -157,18 +167,23 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	r.Get(epp, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// assign encoder and decoder
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
 		// get service
 		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Internal Server Error",
+			})
 			return
 		}
 
 		// allocate memory for variables
 		el := s.AllocEntityList()
-
-		// assign encoder and decoder
-		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// parse paging request parameter
 		offset, limit := func (r *http.Request) (o, l uint64) {
@@ -231,20 +246,25 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	r.Put(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// assign encoder and decoder
+		reqtDec, _ := codec.GetDecoderOk(r)
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
 		// get service
 		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Internal Server Error",
+			})
 			return
 		}
 
 		// allocate memory for variables
 		e := s.AllocEntity()
 		el := s.AllocEntityList()
-
-		// assign encoder and decoder
-		reqtDec, _ := codec.GetDecoderOk(r)
-		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// decode request
 		err = reqtDec.Decode(e)
@@ -297,19 +317,24 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	r.Delete(ep, func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
+		// assign encoder and decoder
+		respEnc, _ := codec.GetEncoderOk(w, r)
+
 		// get service
 		s, err := Get{{ .Type.Name }}(r)
 		if err != nil {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "Internal Server Error",
+			})
 			return
 		}
 
 		// allocate memory for variables
 		e := s.AllocEntity()
 		el := s.AllocEntityList()
-
-		// assign encoder and decoder
-		respEnc, _ := codec.GetEncoderOk(w, r)
 
 		// find the content of the id
 		cond := getKeyCond(r)
