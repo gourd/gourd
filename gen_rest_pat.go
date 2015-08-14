@@ -58,6 +58,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			log.Printf("Error obtaining {{ .Type.Name }} service: %s", err.Error())
 			return
 		}
+		defer s.Close()
 
 		// allocate entity
 		e := s.AllocEntity()
@@ -123,6 +124,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			})
 			return
 		}
+		defer s.Close()
 
 		// allocate memory for variables
 		el := s.AllocEntityList()
@@ -181,6 +183,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			})
 			return
 		}
+		defer s.Close()
 
 		// allocate memory for variables
 		el := s.AllocEntityList()
@@ -261,6 +264,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			})
 			return
 		}
+		defer s.Close()
 
 		// allocate memory for variables
 		e := s.AllocEntity()
@@ -331,6 +335,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			})
 			return
 		}
+		defer s.Close()
 
 		// allocate memory for variables
 		e := s.AllocEntity()
