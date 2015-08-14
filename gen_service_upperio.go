@@ -225,6 +225,12 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 	return 
 }
 
+// Close the database session that {{ .Type.Name }} is using
+func (s *{{ .Type.Name }}Service) Close() error {
+	return s.Db.Close()
+}
+
+
 {{ end }}`)
 
 	tpls.AddDeps("gen service:upperio", "gen:general")
