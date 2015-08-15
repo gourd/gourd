@@ -242,7 +242,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 }
 
 // common rest test
-func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Response, name, path string) {
+func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts, name, path string) {
 
 	// some dummy posts
 	p1 := dummyNewPost()
@@ -257,10 +257,23 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto restit.Resp
 	t0 := posts.Retrieve("").
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
+		ExpectStatus(http.StatusOK).
 		ExpectResultCount(0)
 	_, err = t0.Run()
 	if err != nil {
 		t.Error(err.Error())
+	} else if proto.Status != "success" {
+		t.Errorf("Status should be \"success\" but get \"%s\"",
+			proto.Status)
+		t.FailNow()
+	} else if proto.Code != http.StatusOK {
+		t.Errorf("Status code should be \"%d\" but get \"%d\"",
+			http.StatusOK, proto.Code)
+		t.FailNow()
+	} else if proto.Posts == nil {
+		t.Errorf("Posts field should be empty array but get \"%#v\"",
+			proto.Posts)
+		t.FailNow()
 	}
 
 	// test create

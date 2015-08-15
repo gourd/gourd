@@ -223,12 +223,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		}
 
 		// encode response
-		if s.Len(el) == 0 {
-			respEnc.Encode(map[string]interface{}{
-				"status": "error",
-				"code":   http.StatusNotFound,
-			})
-		} else if err = permAllow(r, respEnc, "list "+noun, el); err != nil {
+		if err = permAllow(r, respEnc, "list "+noun, el); err != nil {
 			code, msg := service.ParseError(err)
 			respEnc.Encode(map[string]interface{}{
 				"status":  "error",
@@ -236,6 +231,12 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 				"message": msg,
 			})
 			return
+		} else if s.Len(el) == 0 {
+			respEnc.Encode(map[string]interface{}{
+				"status": "success",
+				"code":   http.StatusOK,
+				nounp:    []int{},
+			})
 		} else {
 			respEnc.Encode(map[string]interface{}{
 				"status": "success",
