@@ -1,29 +1,40 @@
 export PATH := ../..:${PATH}
 
-build: prebuild
-	echo "gourd path: `which gourd`"
-	go generate
+build: flag.deps
+	go build -o example
 
-prebuild: flag.get_deps
-
-flag.get_deps:
-	go get -u github.com/codegangsta/negroni
-	go get -u github.com/gourd/service
-	go get -u github.com/gourd/service/upperio
-	go get -u github.com/gourd/codec
-	go get -u github.com/gourd/oauth2
-	go get -u github.com/gourd/perm
-	go get -u github.com/gorilla/pat
-	go get -u upper.io/db/postgresql
-	go get -u github.com/yookoala/restit
-	touch flag.get_deps
-
-test: build
+test: message generate build
 	go test -v
 
 clean:
 	rm -f *_service.go
 	rm -f *_service_rest.go
 	rm -f flag.*
+	rm -f example
 
-.PHONY: build prebuild test clean
+
+generate:
+	@echo "gourd path: `which gourd`"
+	go generate
+
+message:
+	@echo
+	@echo "-----------------------------"
+	@echo " Example 4"
+	@echo " - A dummy API server build"
+	@echo "-----------------------------"
+
+
+flag.deps:
+	go get github.com/codegangsta/negroni
+	go get github.com/gorilla/pat
+	go get upper.io/db/postgresql
+	go get github.com/gourd/service
+	go get github.com/gourd/service/upperio
+	go get github.com/gourd/codec
+	go get github.com/gourd/oauth2
+	go get github.com/gourd/perm
+	go get github.com/yookoala/restit
+	touch flag.deps
+
+.PHONY: build test clean generate message

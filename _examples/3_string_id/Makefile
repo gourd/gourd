@@ -1,23 +1,33 @@
 export PATH := ../..:${PATH}
 
-build: prebuild
-	echo "gourd path: `which gourd`"
-	go generate
+build: flag.deps
+	go build
 
-prebuild: flag.get_deps
+test: message generate build
 	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
-
-flag.get_deps:
-	go get -u github.com/gourd/service
-	go get -u github.com/gourd/service/upperio
-	go get -u upper.io/db/sqlite
-	touch flag.get_deps
-
-test: build
 	go test -v
 
 clean:
 	rm -f *_service.go
 	rm -f flag.*
 
-.PHONY: build prebuild test clean
+
+generate:
+	@echo "gourd path: `which gourd`"
+	go generate
+
+message:
+	@echo
+	@echo "------------------------------------------"
+	@echo " Example 3"
+	@echo " - Simple file generation with string ID"
+	@echo "------------------------------------------"
+
+
+flag.deps:
+	go get github.com/gourd/service
+	go get github.com/gourd/service/upperio
+	go get upper.io/db/sqlite
+	touch flag.deps
+
+.PHONY: build test clean generate message
