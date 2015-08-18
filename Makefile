@@ -4,6 +4,9 @@ export PATH:=${PWD}:${PATH}
 build: flag.deps
 	go build -o gourd
 
+generate: flag.genDeps
+	cd templates && go generate
+
 test: build flag.testDeps
 	@echo
 	@echo "============================="
@@ -23,6 +26,10 @@ clean:
 	cd _examples/4_service_unavailable && make clean
 
 
+flag.genDeps:
+	go get -u github.com/jteeuwen/go-bindata/...
+	touch flag.genDeps
+
 flag.deps:
 	go get -u github.com/gourd/service/upperio
 	go get -u upper.io/db/sqlite
@@ -40,4 +47,4 @@ flag.testDeps:
 	go get -u github.com/yookoala/restit
 	touch flag.testDeps
 
-.PHONY: build test clean
+.PHONY: build generate test clean
