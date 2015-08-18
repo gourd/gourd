@@ -1,9 +1,13 @@
 language: go
 
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - sqlite3
+
 install:
-  - sudo apt-get install sqlite3
-  - go get github.com/gourd/service/upperio
-  - go get upper.io/db/sqlite
   - go get ./...
 
 go:
