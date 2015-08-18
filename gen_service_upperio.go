@@ -11,6 +11,11 @@ func init() {
 		`{{ define "imports" }}"net/http"
 		"github.com/gourd/service"
 		"github.com/gourd/service/upperio"
+		{{ if .Id.IsString }}
+		"github.com/satori/go.uuid"
+		"encoding/base64"
+		"strings"
+		{{ end }}
 		"log"
 		"upper.io/db"{{ end }}`,
 		`{{ define "code" }}
@@ -53,20 +58,34 @@ func (s *{{ .Type.Name }}Service) Create(
 		return
 	}
 
+	// apply random uuid string to string id
+	{{ if .Id.IsString }}
+	uid := uuid.NewV4()
+	e := ep.(*{{.Type.Name}})
+	e.{{ .Id.Name }} = strings.TrimRight(base64.URLEncoding.EncodeToString(uid[:]), "=")
+	{{ end }}
+
+
 	//TODO: convert cond into parentkey and
 	//      enforce to the entity
 
 	// add the entity to collection
+	{{ if .Id.IsString }}
+	_, err = coll.Append(ep)
+	{{ else }}
 	id, err := coll.Append(ep)
+	{{ end }}
 	if err != nil {
 		log.Printf("Error creating {{ .Type.Name }}: %s", err.Error())
 		err = service.ErrorInternal
 		return
 	}
 
-	//TODO: apply the key to the entity
+	{{ if .Id.IsString }}{{ else }}
+	// apply the key to the entity
 	e := ep.(*{{.Type.Name}})
-	e.{{ .Id.Name }} = {{ .Id.Type }}(id.({{ .Id.DbType }}))
+	e.{{ .Id.Name }} = {{ .Id.Type }}(id.(int64))
+	{{ end }}
 
 	return
 }
@@ -206,6 +225,12 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 	return 
 }
 
+// Close the database session that {{ .Type.Name }} is using
+func (s *{{ .Type.Name }}Service) Close() error {
+	return s.Db.Close()
+}
+
+
 {{ end }}`)
 
 	tpls.AddDeps("gen service:upperio", "gen:general")
@@ -229,17 +254,9 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 			return in, fmt.Errorf("Unable to prepare. Wrong Id type: %#v", f)
 		}
 
-		// determine database return type
-		// case by case
-		dbtype := "int64"
-		if id.Type == "string" {
-			dbtype = "string"
-		}
-
 		// override the field spec
 		data["Id"] = &UpperFieldSpec{
 			id,
-			dbtype,
 		}
 		return data, nil
 
@@ -251,5 +268,14 @@ func (s *{{ .Type.Name }}Service) Coll() (coll db.Collection, err error) {
 // Includes its original field spec and database type suggestion
 type UpperFieldSpec struct {
 	*goparser.FieldSpec
-	DbType string // type of id returned by upperio
+}
+
+func (s UpperFieldSpec) IsString() bool {
+	return s.Type == "string"
+}
+
+func (s *UpperFieldSpec) IsInt() bool {
+	return s.Type == "int" || s.Type == "uint" ||
+		s.Type == "int32" || s.Type == "uint32" ||
+		s.Type == "int64" || s.Type == "uint64"
 }

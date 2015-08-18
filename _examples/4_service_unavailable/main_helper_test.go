@@ -1,13 +1,11 @@
 package main
 
 import (
-	"github.com/gourd/oauth2"
-	"github.com/gourd/service"
-	"github.com/gourd/service/upperio"
-
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/pat"
+	"github.com/gourd/oauth2"
+	"github.com/gourd/service"
 	"github.com/yookoala/restit"
 	"log"
 	"math/rand"
@@ -17,18 +15,12 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"upper.io/db/sqlite"
 )
 
 // could be used repeatedly for different unit test
-func mainTestServer() (ts *httptest.Server) {
-
-	// define db
-	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
-		Database: `./data/sqlite3.db`,
-	})
-
-	ts = httptest.NewServer(MainHandler())
+func gourdTestServer() (ts *httptest.Server) {
+	s := gourdServer()
+	ts = httptest.NewServer(s)
 	return
 }
 
@@ -265,114 +257,80 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	t0 := posts.Retrieve("").
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectStatus(http.StatusOK).
 		ExpectResultCount(0)
 	_, err = t0.Run()
+
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "success" {
-		t.Errorf("Status should be \"success\" but get \"%s\"",
-			proto.Status)
-		t.FailNow()
-	} else if proto.Code != http.StatusOK {
-		t.Errorf("Status code should be \"%d\" but get \"%d\"",
-			http.StatusOK, proto.Code)
-		t.FailNow()
-	} else if proto.Posts == nil {
-		t.Errorf("Posts field should be empty array but get \"%#v\"",
-			proto.Posts)
-		t.FailNow()
+	} else if proto.Status != "error" {
+		t.Error("Status is not \"error\"")
+	} else if proto.Code != http.StatusInternalServerError {
+		t.Errorf("Status code is not %d", http.StatusInternalServerError)
 	}
 
 	// test create
 	t1 := posts.Create(&p1).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectResultCount(1).
-		ExpectResultsValid().
-		ExpectResultNth(0, p1)
+		ExpectResultCount(0)
 	_, err = t1.Run()
-	p2p, err := proto.GetNth(0)
 	if err != nil {
 		t.Error(err.Error())
-		t.FailNow()
+	} else if proto.Status != "error" {
+		t.Error("Status is not \"error\"")
+	} else if proto.Code != http.StatusInternalServerError {
+		t.Errorf("Status code is not %d", http.StatusInternalServerError)
 	}
-	p2 := p2p.(Post) // created post
 
 	// test retrieve single
-	t2 := post.Retrieve(fmt.Sprintf("%d", p2.ID)).
+	t2 := post.Retrieve("someid").
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectResultCountNot(0)
+		ExpectResultCount(0)
 	_, err = t2.Run()
 	if err != nil {
 		t.Error(err.Error())
+	} else if proto.Status != "error" {
+		t.Error("Status is not \"error\"")
+	} else if proto.Code != http.StatusInternalServerError {
+		t.Errorf("Status code is not %d", http.StatusInternalServerError)
 	}
 
-	// test retrieve list
-	t2b := posts.Retrieve("").
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCountNot(0)
-	_, err = t2b.Run()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// TODO: test retrieve list with dummy title
-
-	// test update, then retrieve single to compare
+	// test update
 	p3 := dummyNewPost()
-	p3.ID = p2.ID
-	t3 := post.Update(fmt.Sprintf("%d", p3.ID), p3).
+	t3 := post.Update("someid", p3).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectStatus(200)
+		ExpectResultCount(0)
 	_, err = t3.Run()
 	if err != nil {
 		t.Error(err.Error())
-	}
-	t4 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectStatus(200). // Success
-		ExpectResultCount(1).
-		ExpectResultNth(0, p3)
-	_, err = t4.Run()
-	if err != nil {
-		t.Error(err.Error())
+	} else if proto.Status != "error" {
+		t.Error("Status is not \"error\"")
+	} else if proto.Code != http.StatusInternalServerError {
+		t.Errorf("Status code is not %d", http.StatusInternalServerError)
 	}
 
 	// test delete
-	t5 := post.Delete(fmt.Sprintf("%d", p3.ID)).
+	t4 := post.Delete(fmt.Sprintf("%d", p3.ID)).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectStatus(200)
-	_, err = t5.Run()
+		ExpectResultCount(0)
+	_, err = t4.Run()
 	if err != nil {
 		t.Error(err.Error())
-	}
-	t6 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
-		AddHeader("Authority", token).
-		WithResponseAs(proto) // Not found anymore
-	_, err = t6.Run()
-	if err != nil {
-		t.Error(err.Error())
+	} else if proto.Status != "error" {
+		t.Error("Status is not \"error\"")
+	} else if proto.Code != http.StatusInternalServerError {
+		t.Errorf("Status code is not %d", http.StatusInternalServerError)
 	}
 
 }
 
 // testing the gourd generated server
 func TestMainPosts(t *testing.T) {
-	ts := mainTestServer()
+	ts := gourdTestServer()
 	defer ts.Close()
 
-	token := testOAuth2(t, ts)
-	if token == "" {
-		t.Error("Failed to obtain security token")
-		t.FailNow()
-		return
-	}
-	log.Printf("token: %s", token)
-	testRest(t, ts, token, &ProtoPosts{}, "Post", "/api/posts")
+	testRest(t, ts, "", &ProtoPosts{}, "Post", "/api/posts")
 }
