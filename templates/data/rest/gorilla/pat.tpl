@@ -33,14 +33,22 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// way to identify the query (for list)
 	getQuery := func(r *http.Request) (cond service.Query) {
-		id := r.URL.Query().Get(":id") // will change
-		q := service.NewQuery().AddCond("id", id)
+
+		q := service.NewQuery()
+
+		id := r.Form.Get("id") // will change
+		if id != "" {
+			log.Printf("id: " + id)
+			q.AddCond("id", id)
+		}
 
 		// parse sort parameter
-		sortStr := r.URL.Form.Get("sorts")
-		sorts := strings.Split(sortStr, ",")
-		for _, sort := range sorts {
-			q.AddSort(sort)
+		sortStr := r.Form.Get("sorts")
+		if sortStr != "" {
+			sorts := strings.Split(sortStr, ",")
+			for _, sort := range sorts {
+				q.Sort(sort)
+			}
 		}
 
 		// parse paging request parameter
@@ -167,7 +175,8 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 		// retrieve
 		cond := getKeyCond(r)
-		err = s.Search(cond, el)
+		q := service.NewQuery().SetConds(cond)
+		err = s.Search(q, el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -225,10 +234,10 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		el := s.AllocEntityList()
 
 		// retrieve query
-		cond := getQuery(r)
-		log.Printf("Retrieve list!!!! %#v", cond)
+		q := getQuery(r)
+		log.Printf("Retrieve list!!!! %#v", q)
 
-		err = s.Search(cond, el)
+		err = s.Search(q, el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -302,7 +311,8 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 		// find the content of the id
 		cond := getKeyCond(r)
-		err = s.Search(cond, el)
+		q := service.NewQuery().SetConds(cond)
+		err = s.Search(q, el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -361,7 +371,8 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 		// find the content of the id
 		cond := getKeyCond(r)
-		err = s.Search(cond, el)
+		q := service.NewQuery().SetConds(cond)
+		err = s.Search(q, el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{

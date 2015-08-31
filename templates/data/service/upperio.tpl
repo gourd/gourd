@@ -96,9 +96,14 @@ func (s *{{ .Type.Name }}Service) Search(
 		return
 	}
 
-	// retrieve all users
+	// retrieve entities by given query conditions
 	var res db.Result
-	res = coll.Find(upperio.Conds(q.GetConds()))
+	conds := upperio.Conds(q.GetConds())
+	if conds == nil {
+		res = coll.Find()
+	} else {
+		res = coll.Find(conds)
+	}
 
 	// handle paging
 	if q.GetOffset() != 0 {
