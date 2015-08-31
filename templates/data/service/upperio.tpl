@@ -88,7 +88,7 @@ func (s *{{ .Type.Name }}Service) Create(
 
 // Search a {{ .Type.Name }} by its condition(s)
 func (s *{{ .Type.Name }}Service) Search(
-	c service.Conds, lp service.EntityListPtr) (err error) {
+	q service.Query, lp service.EntityListPtr) (err error) {
 
 	// get collection
 	coll, err := s.Coll()
@@ -104,18 +104,19 @@ func (s *{{ .Type.Name }}Service) Search(
 	if len(cond) == 0 {
 		res = coll.Find()
 	} else {
-		res = coll.Find(db.Cond(cond))
+		res = coll.Find(upperio.Conds(q.GetConds()))
 	}
 
 	// handle paging
-	if c.GetOffset() != 0 {
-		res = res.Skip(uint(c.GetOffset()))
+	if q.GetOffset() != 0 {
+		res = res.Skip(uint(q.GetOffset()))
 	}
-	if c.GetLimit() != 0 {
-		res = res.Limit(uint(c.GetLimit()))
+	if q.GetLimit() != 0 {
+		res = res.Limit(uint(q.GetLimit()))
 	}
 
-	// TODO: also work with c.Cond for ListCond (limit and offset)
+	// get all results
+	// TODO: consider to use pipeline pattern
 	err = res.All(lp)
 	if err != nil {
 		err = service.ErrorInternal

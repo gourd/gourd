@@ -10,6 +10,7 @@
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 {{ end }}
 
 {{ define "code" }}
@@ -28,6 +29,42 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		//       dynamically with gourd
 		id := r.URL.Query().Get(":id") // will change
 		return service.NewConds().Add("id", id)
+	}
+
+	// way to identify the query (for list)
+	getQuery := func(r *http.Request) (cond service.Query) {
+		id := r.URL.Query().Get(":id") // will change
+		q := service.NewQuery().AddCond("id", id)
+
+		// parse sort parameter
+		sortStr := r.URL.Form.Get("sorts")
+		sorts := strings.Split(sortStr, ",")
+		for _, sort := range sorts {
+			q.AddSort(sort)
+		}
+
+		// parse paging request parameter
+		offset, limit := func (r *http.Request) (o, l uint64) {
+			ostr := r.Form.Get("offset")
+			lstr := r.Form.Get("limit")
+			if ostr == "" {
+				if ot, err := strconv.ParseUint(ostr, 10, 64); err == nil {
+					o = ot
+				}
+			}
+			if lstr == "" {
+				if lt, err := strconv.ParseUint(ostr, 10, 64); err == nil {
+					l = lt
+				}
+			}
+			return
+		}(r)
+
+		// retrieve
+		q.SetOffset(offset)
+		q.SetLimit(limit)
+
+		return q
 	}
 
 	// handle permission related issue
@@ -187,27 +224,8 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		// allocate memory for variables
 		el := s.AllocEntityList()
 
-		// parse paging request parameter
-		offset, limit := func (r *http.Request) (o, l uint64) {
-			ostr := r.Form.Get("offset")
-			lstr := r.Form.Get("limit")
-			if ostr == "" {
-				if ot, err := strconv.ParseUint(ostr, 10, 64); err == nil {
-					o = ot
-				}
-			}
-			if lstr == "" {
-				if lt, err := strconv.ParseUint(ostr, 10, 64); err == nil {
-					l = lt
-				}
-			}
-			return
-		}(r)
-
-		// retrieve
-		cond := service.NewConds()
-		cond.SetOffset(offset)
-		cond.SetLimit(limit)
+		// retrieve query
+		cond := getQuery(r)
 		log.Printf("Retrieve list!!!! %#v", cond)
 
 		err = s.Search(cond, el)
