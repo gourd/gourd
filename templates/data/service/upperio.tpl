@@ -96,16 +96,9 @@ func (s *{{ .Type.Name }}Service) Search(
 		return
 	}
 
-	// get list condition and ignore the error
-	cond, _ := c.GetMap()
-
 	// retrieve all users
 	var res db.Result
-	if len(cond) == 0 {
-		res = coll.Find()
-	} else {
-		res = coll.Find(upperio.Conds(q.GetConds()))
-	}
+	res = coll.Find(upperio.Conds(q.GetConds()))
 
 	// handle paging
 	if q.GetOffset() != 0 {
@@ -131,7 +124,8 @@ func (s *{{ .Type.Name }}Service) One(
 
 	// retrieve from database
 	l := &[]{{ .Type.Name }}{}
-	err = s.Search(c, l)
+	q := service.NewQuery().SetConds(c)
+	err = s.Search(q, l)
 	if err != nil {
 		return
 	}
