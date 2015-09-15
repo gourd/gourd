@@ -36,14 +36,13 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 		q := service.NewQuery()
 
-		id := r.Form.Get("id") // will change
+		id := r.FormValue("id") // will change
 		if id != "" {
-			log.Printf("id: " + id)
 			q.AddCond("id", id)
 		}
 
 		// parse sort parameter
-		sortStr := r.Form.Get("sorts")
+		sortStr := r.FormValue("sorts")
 		if sortStr != "" {
 			sorts := strings.Split(sortStr, ",")
 			for _, sort := range sorts {
@@ -52,16 +51,16 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		}
 
 		// parse paging request parameter
-		offset, limit := func (r *http.Request) (o, l uint64) {
-			ostr := r.Form.Get("offset")
-			lstr := r.Form.Get("limit")
-			if ostr == "" {
+		offset, limit := func(r *http.Request) (o, l uint64) {
+			ostr := r.FormValue("offset")
+			lstr := r.FormValue("limit")
+			if ostr != "" {
 				if ot, err := strconv.ParseUint(ostr, 10, 64); err == nil {
 					o = ot
 				}
 			}
-			if lstr == "" {
-				if lt, err := strconv.ParseUint(ostr, 10, 64); err == nil {
+			if lstr != "" {
+				if lt, err := strconv.ParseUint(lstr, 10, 64); err == nil {
 					l = lt
 				}
 			}
