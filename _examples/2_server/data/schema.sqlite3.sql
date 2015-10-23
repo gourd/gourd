@@ -35,7 +35,7 @@ CREATE TABLE comments (
 
 DROP TABLE IF EXISTS user;
 CREATE TABLE user (
-  `id`       INTEGER PRIMARY KEY,
+  `id`       TEXT PRIMARY KEY,
   `username` TEXT,
   `email`    TEXT,
   `password` TEXT,
@@ -50,8 +50,7 @@ CREATE TABLE user (
 --
 DROP TABLE IF EXISTS oauth2_client;
 CREATE TABLE oauth2_client (
-  `id`           INTEGER PRIMARY KEY,
-  `str_id`       TEXT,
+  `id`           TEXT PRIMARY KEY,
   `secret`       TEXT,
   `redirect_uri` TEXT,
   `user_id`      TEXT
@@ -59,7 +58,7 @@ CREATE TABLE oauth2_client (
 
 DROP TABLE IF EXISTS oauth2_auth;
 CREATE TABLE oauth2_auth (
-  `id`           INTEGER PRIMARY KEY,
+  `id`           TEXT PRIMARY KEY,
   `client_id`    TEXT,
   `code`         TEXT,
   `expires_in`   INTEGER,
@@ -67,12 +66,12 @@ CREATE TABLE oauth2_auth (
   `redirect_uri` TEXT,
   `state`        TEXT,
   `created_at`   INTEGER,
-  `user_id`      INTEGER
+  `user_id`      TEXT
 );
 
 DROP TABLE IF EXISTS oauth2_access;
 CREATE TABLE oauth2_access (
-  `id`                INTEGER PRIMARY KEY,
+  `id`                TEXT PRIMARY KEY,
   `client_id`         TEXT,
   `auth_code`         TEXT,
   `access_token`      TEXT,
@@ -83,5 +82,5 @@ CREATE TABLE oauth2_access (
   `redirect_uri`      TEXT,
   `state`             TEXT,
   `created_at`        INTEGER,
-  `user_id`           INTEGER
+  `user_id`           TEXT
 );

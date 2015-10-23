@@ -54,10 +54,10 @@ func dummyNewClient(redirectUri string) *oauth2.Client {
 	}
 
 	return &oauth2.Client{
-		StrId:       randSeq(10),
+		Id:          randSeq(10),
 		Secret:      randSeq(10),
 		RedirectUri: redirectUri,
-		UserId:      0,
+		UserId:      randSeq(10),
 	}
 }
 
@@ -146,7 +146,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		// build the query string
 		q := &url.Values{}
 		q.Add("response_type", "code")
-		q.Add("client_id", c.StrId)
+		q.Add("client_id", c.Id)
 		q.Add("redirect_uri", redirect)
 
 		req, err := http.NewRequest("POST",
@@ -197,7 +197,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		// build user request to token endpoint
 		form := &url.Values{}
 		form.Add("code", code)
-		form.Add("client_id", c.StrId)
+		form.Add("client_id", c.Id)
 		form.Add("client_secret", c.Secret)
 		form.Add("grant_type", "authorization_code")
 		form.Add("redirect_uri", redirect)
