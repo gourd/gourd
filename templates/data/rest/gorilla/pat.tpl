@@ -32,7 +32,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	}
 
 	// way to identify the query (for list)
-	getQuery := func(r *http.Request) (cond service.Query) {
+	getListQuery := func(r *http.Request) (cond service.Query) {
 
 		q := service.NewQuery()
 
@@ -175,7 +175,17 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		// retrieve
 		cond := getKeyCond(r)
 		q := service.NewQuery().SetConds(cond)
-		err = s.Search(q, el)
+		result, err := s.Search(q)
+		if err != nil {
+			log.Printf("Error running Search %s: %s", noun, err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "internal server error",
+			})
+		}
+
+		err = result.All(el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -233,10 +243,19 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		el := s.AllocEntityList()
 
 		// retrieve query
-		q := getQuery(r)
+		q := getListQuery(r)
 		log.Printf("Retrieve list!!!! %#v", q)
+		result, err := s.Search(q)
+		if err != nil {
+			log.Printf("Error running Search %s: %s", noun, err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "internal server error",
+			})
+		}
 
-		err = s.Search(q, el)
+		err = result.All(el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -311,7 +330,17 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		// find the content of the id
 		cond := getKeyCond(r)
 		q := service.NewQuery().SetConds(cond)
-		err = s.Search(q, el)
+		result, err := s.Search(q)
+		if err != nil {
+			log.Printf("Error running Search %s: %s", noun, err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "internal server error",
+			})
+		}
+
+		err = result.All(el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{
@@ -371,7 +400,17 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		// find the content of the id
 		cond := getKeyCond(r)
 		q := service.NewQuery().SetConds(cond)
-		err = s.Search(q, el)
+		result, err := s.Search(q)
+		if err != nil {
+			log.Printf("Error running Search %s: %s", noun, err.Error())
+			respEnc.Encode(map[string]interface{}{
+				"status":  "error",
+				"code":    http.StatusInternalServerError,
+				"message": "internal server error",
+			})
+		}
+
+		err = result.All(el)
 		if err != nil {
 			log.Printf("Error searching %s: %s", noun, err.Error())
 			respEnc.Encode(map[string]interface{}{

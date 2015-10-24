@@ -88,7 +88,7 @@ func (s *{{ .Type.Name }}Service) Create(
 
 // Search a {{ .Type.Name }} by its condition(s)
 func (s *{{ .Type.Name }}Service) Search(
-	q service.Query, lp service.EntityListPtr) (err error) {
+	q service.Query) (result service.Result, err error) {
 
 	// get collection
 	coll, err := s.Coll()
@@ -113,24 +113,24 @@ func (s *{{ .Type.Name }}Service) Search(
 		res = res.Limit(uint(q.GetLimit()))
 	}
 
-	// get all results
-	// TODO: consider to use pipeline pattern
-	err = res.All(lp)
-	if err != nil {
-		err = service.ErrorInternal
-	}
-
-	return nil
+	result = upperio.NewResult(res)
+	return
 }
 
 // One returns the first {{ .Type.Name }} matches condition(s)
 func (s *{{ .Type.Name }}Service) One(
 	c service.Conds, ep service.EntityPtr) (err error) {
 
-	// retrieve from database
+	// retrieve results from database
 	l := &[]{{ .Type.Name }}{}
 	q := service.NewQuery().SetConds(c)
-	err = s.Search(q, l)
+	res, err := s.Search(q)
+	if err != nil {
+		return
+	}
+
+	// dump results into pointer of map / struct
+	err = res.All(l)
 	if err != nil {
 		return
 	}
