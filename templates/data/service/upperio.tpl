@@ -61,9 +61,14 @@ func (s *{{ .Type.Name }}Service) Create(
 	e.{{ .Id.Name }} = strings.TrimRight(base64.URLEncoding.EncodeToString(uid[:]), "=")
 	{{ end }}
 
-
-	//TODO: convert cond into parentkey and
-	//      enforce to the entity
+	// Marshal the item, if possible
+	// (quick fix for upperio problem with db.Marshaler)
+	if me, ok := ep.(db.Marshaler); ok {
+		ep, err = me.MarshalDB()
+		if err != nil {
+			return
+		}
+	}
 
 	// add the entity to collection
 	{{ if .Id.IsString }}
@@ -157,6 +162,15 @@ func (s *{{ .Type.Name }}Service) Update(
 	// get by condition and ignore the error
 	cond, _ := c.GetMap()
 	res := coll.Find(db.Cond(cond))
+
+	// Marshal the item, if possible
+	// (quick fix for upperio problem with db.Marshaler)
+	if me, ok := ep.(db.Marshaler); ok {
+		ep, err = me.MarshalDB()
+		if err != nil {
+			return
+		}
+	}
 
 	// update the matched entities
 	err = res.Update(ep)
