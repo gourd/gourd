@@ -88,33 +88,34 @@ func (s *{{ .Type.Name }}Service) Create(
 
 // Search a {{ .Type.Name }} by its condition(s)
 func (s *{{ .Type.Name }}Service) Search(
-	q service.Query) (result service.Result, err error) {
+	q service.Query) service.Result {
 
-	// get collection
-	coll, err := s.Coll()
-	if err != nil {
+	return upperio.NewResult(func() (res db.Result, err error) {
+		// get collection
+		coll, err := s.Coll()
+		if err != nil {
+			return
+		}
+
+		// retrieve entities by given query conditions
+		conds := upperio.Conds(q.GetConds())
+		if conds == nil {
+			res = coll.Find()
+		} else {
+			res = coll.Find(conds)
+		}
+
+		// handle paging
+		if q.GetOffset() != 0 {
+			res = res.Skip(uint(q.GetOffset()))
+		}
+		if q.GetLimit() != 0 {
+			res = res.Limit(uint(q.GetLimit()))
+		}
+
 		return
-	}
+	})
 
-	// retrieve entities by given query conditions
-	var res db.Result
-	conds := upperio.Conds(q.GetConds())
-	if conds == nil {
-		res = coll.Find()
-	} else {
-		res = coll.Find(conds)
-	}
-
-	// handle paging
-	if q.GetOffset() != 0 {
-		res = res.Skip(uint(q.GetOffset()))
-	}
-	if q.GetLimit() != 0 {
-		res = res.Limit(uint(q.GetLimit()))
-	}
-
-	result = upperio.NewResult(res)
-	return
 }
 
 // One returns the first {{ .Type.Name }} matches condition(s)
@@ -124,13 +125,9 @@ func (s *{{ .Type.Name }}Service) One(
 	// retrieve results from database
 	l := &[]{{ .Type.Name }}{}
 	q := service.NewQuery().SetConds(c)
-	res, err := s.Search(q)
-	if err != nil {
-		return
-	}
 
 	// dump results into pointer of map / struct
-	err = res.All(l)
+	err = s.Search(q).All(l)
 	if err != nil {
 		return
 	}
