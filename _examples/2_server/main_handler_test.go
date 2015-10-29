@@ -270,7 +270,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t0.Run()
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "success" {
+	} else if proto.Status != http.StatusOK {
 		t.Errorf("Status should be \"success\" but get \"%s\"",
 			proto.Status)
 		t.FailNow()

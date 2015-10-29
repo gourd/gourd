@@ -7,7 +7,7 @@ import (
 
 // ProtoCommon represents a common protocol
 type ProtoCommon struct {
-	Status  string        `json:"status"`
+	Status  int           `json:"status"`
 	Code    int           `json:"code"`
 	Msg     string        `json:"message,omitempty"`
 	Results []interface{} `json:"results"`
@@ -15,7 +15,7 @@ type ProtoCommon struct {
 
 // ProtoPosts represtnts protocol to communicate Posts
 type ProtoPosts struct {
-	Status string  `json:"status"`
+	Status int     `json:"status"`
 	Code   int     `json:"code"`
 	Msg    string  `json:"message,omitempty"`
 	Posts  *[]Post `json:"posts,omitempty"`
@@ -103,7 +103,7 @@ func (r *ProtoPosts) Match(a interface{}, b interface{}) (err error) {
 
 // Reset reset the current list
 func (r *ProtoPosts) Reset() {
-	r.Status = ""
+	r.Status = 0
 	var ps []Post
 	r.Posts = &ps
 	r.Post = nil

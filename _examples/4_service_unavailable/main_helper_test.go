@@ -262,7 +262,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "error" {
+	} else if proto.Status == http.StatusOK {
 		t.Error("Status is not \"error\"")
 	} else if proto.Code != http.StatusInternalServerError {
 		t.Errorf("Status code is not %d", http.StatusInternalServerError)
@@ -276,7 +276,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t1.Run()
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "error" {
+	} else if proto.Status == http.StatusOK {
 		t.Error("Status is not \"error\"")
 	} else if proto.Code != http.StatusInternalServerError {
 		t.Errorf("Status code is not %d", http.StatusInternalServerError)
@@ -290,7 +290,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t2.Run()
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "error" {
+	} else if proto.Status == http.StatusOK {
 		t.Error("Status is not \"error\"")
 	} else if proto.Code != http.StatusInternalServerError {
 		t.Errorf("Status code is not %d", http.StatusInternalServerError)
@@ -305,7 +305,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t3.Run()
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "error" {
+	} else if proto.Status == http.StatusOK {
 		t.Error("Status is not \"error\"")
 	} else if proto.Code != http.StatusInternalServerError {
 		t.Errorf("Status code is not %d", http.StatusInternalServerError)
@@ -319,7 +319,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t4.Run()
 	if err != nil {
 		t.Error(err.Error())
-	} else if proto.Status != "error" {
+	} else if proto.Status == http.StatusOK {
 		t.Error("Status is not \"error\"")
 	} else if proto.Code != http.StatusInternalServerError {
 		t.Errorf("Status code is not %d", http.StatusInternalServerError)
