@@ -1,5 +1,5 @@
 //go:generate gourd gen service -type=Post -coll=posts $GOFILE
-//go:generate gourd gen rest -type=PostService post_service.go
+//go:generate gourd gen rest -type=Post -service=PostService post_service.go
 
 package main
 

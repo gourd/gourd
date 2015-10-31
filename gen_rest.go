@@ -18,7 +18,12 @@ func init() {
 			cli.StringFlag{
 				Name:  "type, t",
 				Value: "",
-				Usage: "comma-separated list of type names; must be set",
+				Usage: "type name of the entity, required",
+			},
+			cli.StringFlag{
+				Name:  "service, s",
+				Value: "",
+				Usage: "type name of the entity service, required",
 			},
 			cli.StringFlag{
 				Name:  "router, r",
@@ -54,34 +59,38 @@ func genServiceRest(c *cli.Context) {
 		fns = c.Args()
 	}
 
-	// target type
+	// target entity type
 	if c.String("type") == "" {
-		fmt.Println("Please provide the target type(s)")
+		fmt.Println("Please provide the target entity type")
 		os.Exit(1)
 	}
 	tn := c.String("type")
 
-	// separated the type names with comma
-	tns := strings.Split(tn, ",")
+	// target service type
+	if c.String("service") == "" {
+		fmt.Println("Please provide the target service type")
+		os.Exit(1)
+	}
+	sn := c.String("service")
 
 	// router
 	var s string
 	s = c.String("router")
 
 	// read type of type name from given file(s)
-	pkg, ts, err := readTypeFile(fns[0], tns)
+	pkg, sts, err := readTypeFile(fns[0], []string{sn})
 	if err != nil {
 		fmt.Printf("Error parsing \"%s\". Error: %s. Exit.", fns[0], err.Error())
 		os.Exit(1)
 	}
 
 	// loop through each type found
-	for _, t := range ts {
+	for _, st := range sts {
 
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = genServiceRestFn(t.Name)
+			o = genServiceRestFn(st.Name)
 		} else {
 			o = c.String("output")
 		}
@@ -98,10 +107,11 @@ func genServiceRest(c *cli.Context) {
 
 		// write the generated output to file
 		err = tpls.New("gen rest:"+s).Execute(f, map[string]interface{}{
-			"Now":  now.Format(TIMEFORMAT),
-			"Ver":  VERSION,
-			"Pkg":  pkg,
-			"Type": t,
+			"Now":     now.Format(TIMEFORMAT),
+			"Ver":     VERSION,
+			"Pkg":     pkg,
+			"Type":    tn,
+			"Service": st,
 		})
 		if err != nil {
 			fmt.Printf("Failed to write to file \"%s\".\n", o)

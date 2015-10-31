@@ -21,15 +21,15 @@
 
 {{ define "code" }}
 
-// {{ .Type.Name }}CRUDEndpoints generate endpoints for CURD
-func {{ .Type.Name }}CRUDEndpoints(noun, nounp string) (endpoints map[string]endpoint.Endpoint) {
+// {{ .Service.Name }}Endpoints generate endpoints for CURD
+func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoint.Endpoint) {
 
 	// variables to use later
-	blankService := &{{ .Type.Name }}{}
+	blankService := &{{ .Service.Name }}{}
 	allocEntity := blankService.AllocEntity
 	allocEntityList := blankService.AllocEntityList
-	getService := Get{{ .Type.Name }}
-	serviceName := "{{ .Type.Name }}"
+	getService := Get{{ .Service.Name }}
+	serviceName := "{{ .Service.Name }}"
 
 	// enforce entity property before create
 	prepareCreate := func(r *http.Request, e service.EntityPtr) (err error) {
@@ -361,11 +361,11 @@ func {{ .Type.Name }}CRUDEndpoints(noun, nounp string) (endpoints map[string]end
 	return	
 }
 
-// {{ .Type.Name }}Rest binds service to pat router
-func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
+// {{ .Service.Name }}Rest binds service to pat router
+func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// variables to use later
-	blankService := &{{ .Type.Name }}{}
+	blankService := &{{ .Service.Name }}{}
 	allocEntity := blankService.AllocEntity
 
 	// decodeIDReq generically decoded :id field
@@ -475,7 +475,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	pluralNounPath := base + "/" + nounp
 	log.Printf("REST path: %s", pluralNounPath)
 
-	endpoints := {{ .Type.Name }}CRUDEndpoints(noun, nounp)
+	endpoints := {{ .Service.Name }}Endpoints(noun, nounp)
 
 	// define middleware chain for all endpoints
 	mwares := endpoint.Chain(
