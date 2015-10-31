@@ -7,7 +7,6 @@
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/pat"
 	gourdctx "github.com/gourd/context"
-	//"github.com/gourd/codec"
 	"github.com/gourd/perm"
 	"github.com/gourd/service"
 	"golang.org/x/net/context"
@@ -22,15 +21,15 @@
 
 {{ define "code" }}
 
-// {{ .Type.Name }}Rest binds service to pat router
-func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
+// {{ .Type.Name }}CRUDEndpoints generate endpoints for CURD
+func {{ .Type.Name }}CRUDEndpoints(noun, nounp string) (endpoints map[string]endpoint.Endpoint) {
 
 	// variables to use later
-	getService := Get{{ .Type.Name }}
-	serviceName := "{{ .Type.Name }}"
 	blankService := &{{ .Type.Name }}{}
 	allocEntity := blankService.AllocEntity
 	allocEntityList := blankService.AllocEntityList
+	getService := Get{{ .Type.Name }}
+	serviceName := "{{ .Type.Name }}"
 
 	// enforce entity property before create
 	prepareCreate := func(r *http.Request, e service.EntityPtr) (err error) {
@@ -58,6 +57,316 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 		m := perm.GetMux(r)
 		return m.Allow(r, permission, info...)
 	}
+
+	// store endpoints here
+	// TODO: may have new struct to store
+	endpoints = make(map[string]endpoint.Endpoint)
+
+	endpoints["Create"] = func(ctx context.Context, e interface{}) (res interface{}, err error) {
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := service.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
+		// enforce create integrity
+		prepareCreate(r, e)
+
+		// get service
+		s, err := getService(r)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+			err = serr
+			return
+		}
+		defer s.Close()
+
+		// check permission
+		if err = permAllow(r, "create "+noun, e); err != nil {
+			err = service.ErrorForbidden
+			return
+		}
+
+		// create entity
+		log.Printf("[!!!] entity to create: %#v", e)
+		err = s.Create(nil, e)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error creating %s: %#v, entity: %#v", noun, err.Error(), e)
+			err = serr
+			return
+		}
+
+		// encode response
+		res = service.NewResponse(nounp, []interface{}{e})
+		return
+
+	}
+
+	endpoints["Retrieve"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+
+		q := request.(service.Query)
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := service.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
+		// get service
+		s, err := getService(r)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+			err = serr
+			return
+		}
+		defer s.Close()
+
+		// allocate memory for variables
+		el := allocEntityList()
+
+		// retrieve
+		err = s.Search(q).All(el)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		// encode response
+		if s.Len(el) == 0 {
+			err = service.ErrorNotFound
+			return
+		} else if err = permAllow(r, "load "+noun, el); err != nil {
+			serr := service.ErrorForbidden
+			serr.ServerMsg = err.Error()
+			err = serr
+			return
+		} else if err = prepareEntityList(r, el); err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error encoding %s list: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		res = service.NewResponse(nounp, el)
+		return
+
+	}
+
+	endpoints["List"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+
+		q := request.(service.Query)
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := service.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
+		// get service
+		s, err := getService(r)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+			err = serr
+			return
+		}
+		defer s.Close()
+
+		// allocate memory for variables
+		var el interface{} = allocEntityList()
+
+		err = s.Search(q).All(el)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		// encode response
+		if err = permAllow(r, "list "+noun, el); err != nil {
+			serr := service.ErrorForbidden
+			serr.ServerMsg = err.Error()
+			err = serr
+			return
+		} else if err = prepareEntityList(r, el); err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error encoding %s list: %s",
+				noun, err)
+			err = serr
+			return
+		} else if s.Len(el) == 0 {
+			el = &[]int{}
+		}
+
+		res = service.NewResponse(nounp, el)
+		return
+
+	}
+
+	endpoints["Update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+
+		// allocate memory for variables
+		var el interface{} = allocEntityList()
+
+		rmap := request.(map[string]interface{})
+		q := rmap["query"].(service.Query)
+		e := rmap["entity"]
+		cond := q.GetConds()
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := service.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
+		// get service
+		s, err := getService(r)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+			err = serr
+			return
+		}
+		defer s.Close()
+
+		// find the content of the id
+		err = s.Search(q).All(el)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		// enforce update integrity
+		err = prepareUpdate(e, el)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error Preparing with PrepDb %s: %s", noun, err)
+			err = serr
+			return
+		}
+
+		// test permission
+		if err = permAllow(r, "update "+noun, el); err != nil {
+			serr := service.ErrorForbidden
+			serr.ServerMsg = err.Error()
+			err = serr
+			return
+		}
+
+		// update entity
+		if err = s.Update(cond, e); err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error encoding %s list: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		res = service.NewResponse(nounp, []interface{}{e})
+		return
+	}
+
+	endpoints["Delete"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+
+		// allocate memory for variables
+		e := allocEntity()
+		el := allocEntityList()
+
+		// service query of id
+		q := request.(service.Query)
+		cond := q.GetConds()
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := service.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
+		// get service
+		s, err := getService(r)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+			err = serr
+			return
+		}
+		defer s.Close()
+
+		// find the content of the id
+		err = s.Search(q).All(el)
+		if err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		// test permission
+		if err = permAllow(r, "delete "+noun, el); err != nil {
+			serr := service.ErrorForbidden
+			serr.ServerMsg = err.Error()
+			err = serr
+			return
+		}
+
+		// delete entity
+		if err = s.Delete(cond); err != nil {
+			serr := service.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf(
+				"error encoding %s list: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		res = service.NewResponse(nounp, []interface{}{e})
+		return
+
+	}
+
+	return	
+}
+
+// {{ .Type.Name }}Rest binds service to pat router
+func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
+
+	// variables to use later
+	blankService := &{{ .Type.Name }}{}
+	allocEntity := blankService.AllocEntity
 
 	// decodeIDReq generically decoded :id field
 	// (works with pat based URL routing)
@@ -166,327 +475,7 @@ func {{ .Type.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	pluralNounPath := base + "/" + nounp
 	log.Printf("REST path: %s", pluralNounPath)
 
-	// store endpoints here
-	// TODO: may have new struct to store
-	endpoints := make(map[string]endpoint.Endpoint)
-
-	endpoints["Create"] = func(ctx context.Context, e interface{}) (res interface{}, err error) {
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := service.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
-		// enforce create integrity
-		prepareCreate(r, e)
-
-		// get service
-		s, err := getService(r)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// check permission
-		if err = permAllow(r, "create "+noun, e); err != nil {
-			err = service.ErrorForbidden
-			return
-		}
-
-		// create entity
-		log.Printf("[!!!] entity to create: %#v", e)
-		err = s.Create(nil, e)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error creating %s: %#v, entity: %#v", noun, err.Error(), e)
-			err = serr
-			return
-		}
-
-		// encode response
-		res = map[string]interface{}{
-			"status": http.StatusOK,
-			"code":   http.StatusOK,
-			nounp:    []interface{}{e},
-		}
-
-		return
-
-	}
-
-	endpoints["Retrieve"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
-
-		q := request.(service.Query)
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := service.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
-		// get service
-		s, err := getService(r)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// allocate memory for variables
-		el := allocEntityList()
-
-		// retrieve
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		// encode response
-		if s.Len(el) == 0 {
-			err = service.ErrorNotFound
-			return
-		} else if err = permAllow(r, "load "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		} else if err = prepareEntityList(r, el); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		res = map[string]interface{}{
-			"status": http.StatusOK,
-			"code":   http.StatusOK,
-			nounp:    el,
-		}
-		return
-
-	}
-
-	endpoints["List"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
-
-		q := request.(service.Query)
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := service.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
-		// get service
-		s, err := getService(r)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// allocate memory for variables
-		var el interface{} = allocEntityList()
-
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		// encode response
-		if err = permAllow(r, "list "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		} else if err = prepareEntityList(r, el); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
-		} else if s.Len(el) == 0 {
-			el = &[]int{}
-		}
-
-		res = map[string]interface{}{
-			"status": http.StatusOK,
-			"code":   http.StatusOK,
-			nounp:    el,
-		}
-		return
-
-	}
-
-	endpoints["Update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
-
-		// allocate memory for variables
-		var el interface{} = allocEntityList()
-
-		rmap := request.(map[string]interface{})
-		q := rmap["query"].(service.Query)
-		e := rmap["entity"]
-		cond := q.GetConds()
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := service.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
-		// get service
-		s, err := getService(r)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// find the content of the id
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		// enforce update integrity
-		err = prepareUpdate(e, el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error Preparing with PrepDb %s: %s", noun, err)
-			err = serr
-			return
-		}
-
-		// test permission
-		if err = permAllow(r, "update "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		}
-
-		// update entity
-		if err = s.Update(cond, e); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		res = map[string]interface{}{
-			"status": http.StatusOK,
-			"code":   http.StatusOK,
-			nounp:    []interface{}{e},
-		}
-		return
-	}
-
-	endpoints["Delete"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
-
-		// allocate memory for variables
-		e := allocEntity()
-		el := allocEntityList()
-
-		// service query of id
-		q := request.(service.Query)
-		cond := q.GetConds()
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := service.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
-		// get service
-		s, err := getService(r)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// find the content of the id
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		// test permission
-		if err = permAllow(r, "delete "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		}
-
-		// delete entity
-		if err = s.Delete(cond); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		res = map[string]interface{}{
-			"status": http.StatusOK,
-			"code":   http.StatusOK,
-			nounp:    []interface{}{e},
-		}
-		return
-
-	}
-
+	endpoints := {{ .Type.Name }}CRUDEndpoints(noun, nounp)
 
 	// define middleware chain for all endpoints
 	mwares := endpoint.Chain(

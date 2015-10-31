@@ -8,7 +8,6 @@ import (
 // ProtoCommon represents a common protocol
 type ProtoCommon struct {
 	Status  int           `json:"status"`
-	Code    int           `json:"code"`
 	Msg     string        `json:"message,omitempty"`
 	Results []interface{} `json:"results"`
 }
@@ -16,7 +15,6 @@ type ProtoCommon struct {
 // ProtoPosts represtnts protocol to communicate Posts
 type ProtoPosts struct {
 	Status int     `json:"status"`
-	Code   int     `json:"code"`
 	Msg    string  `json:"message,omitempty"`
 	Posts  *[]Post `json:"posts,omitempty"`
 	Post   *Post   `json:"post,omitempty"`

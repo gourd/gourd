@@ -274,10 +274,6 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 		t.Errorf("Status should be \"success\" but get \"%s\"",
 			proto.Status)
 		t.FailNow()
-	} else if proto.Code != http.StatusOK {
-		t.Errorf("Status code should be \"%d\" but get \"%d\"",
-			http.StatusOK, proto.Code)
-		t.FailNow()
 	} else if proto.Posts == nil {
 		t.Errorf("Posts field should be empty array but get \"%#v\"",
 			proto.Posts)
