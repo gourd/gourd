@@ -90,7 +90,7 @@ func genStoreRest(c *cli.Context) {
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = genStoreRestFn(st.Name)
+			o = genStoreRestFn(tn)
 		} else {
 			o = c.String("output")
 		}
