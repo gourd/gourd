@@ -25,8 +25,8 @@ message:
 
 
 flag.deps:
-	go get github.com/gourd/service
-	go get github.com/gourd/service/upperio
+	go get github.com/gourd/kit/store
+	go get github.com/gourd/kit/store/upperio
 	go get upper.io/db/sqlite
 	touch flag.deps
 

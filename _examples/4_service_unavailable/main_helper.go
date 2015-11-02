@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/gourd/codec"
+	"github.com/gourd/kit/perm"
+	"github.com/gourd/kit/store/upperio"
+
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
-	"github.com/gourd/codec"
-	"github.com/gourd/perm"
-	"github.com/gourd/service/upperio"
+	"golang.org/x/net/context"
 	"log"
 	"net/http"
 	"time"
@@ -31,12 +33,12 @@ func gourdServer() (h http.Handler) {
 
 	// approve all permission test
 	p := perm.NewMux()
-	requireAccess := func(r *http.Request, perm string, info ...interface{}) error {
+	requireAccess := func(ctx context.Context, perm string, info ...interface{}) error {
 		log.Printf("Requesting permission to %s", perm)
 		return nil
 	}
 	p.HandleFunc("create post", requireAccess)
-	p.HandleFunc("load post", requireAccess)
+	p.HandleFunc("retrieve post", requireAccess)
 	p.HandleFunc("list post", requireAccess)
 	p.HandleFunc("update post", requireAccess)
 	p.HandleFunc("delete post", requireAccess)
@@ -45,8 +47,8 @@ func gourdServer() (h http.Handler) {
 	rtr := pat.New()
 
 	// add services rest to router
-	PostServiceRest(rtr, "/api", "post", "posts")
-	CommentServiceRest(rtr, "/api", "comment", "comments")
+	PostStoreRest(rtr, p, "/api", "post", "posts")
+	CommentStoreRest(rtr, p, "/api", "comment", "comments")
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form
@@ -57,7 +59,6 @@ func gourdServer() (h http.Handler) {
 	// with middlewares
 	n := negroni.New()
 	n.Use(negroni.Wrap(ch))
-	n.Use(negroni.Wrap(p))
 
 	// use router in negroni
 	n.UseHandler(rtr)

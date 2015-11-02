@@ -7,8 +7,8 @@ test: message generate build
 	go test -v
 
 clean:
-	rm -f *_service.go
-	rm -f *_service_rest.go
+	rm -f *_store.go
+	rm -f *_store_rest.go
 	rm -f flag.*
 
 
@@ -25,7 +25,7 @@ message:
 
 
 flag.deps:
-	go get github.com/gourd/service
+	go get github.com/gourd/kit/store
 	touch flag.deps
 
 .PHONY: build test clean generate message

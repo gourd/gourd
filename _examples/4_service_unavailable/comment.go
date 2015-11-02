@@ -1,5 +1,5 @@
-//go:generate gourd gen service -type=Comment -coll=comments $GOFILE
-//go:generate gourd gen rest -type=Comment -service=CommentService comment_service.go
+//go:generate gourd gen store -type=Comment -coll=comments $GOFILE
+//go:generate gourd gen rest -type=Comment -store=CommentStore comment_store.go
 
 package main
 

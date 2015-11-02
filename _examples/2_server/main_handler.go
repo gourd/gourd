@@ -4,8 +4,11 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/codec"
-	"github.com/gourd/oauth2"
-	"github.com/gourd/perm"
+	gourdctx "github.com/gourd/kit/context"
+	"github.com/gourd/kit/oauth2"
+	"github.com/gourd/kit/perm"
+	"github.com/gourd/kit/store"
+	"golang.org/x/net/context"
 	"log"
 	"net/http"
 )
@@ -28,16 +31,26 @@ func MainHandler() http.Handler {
 	// provide access handlers to
 	// NOTE: these are independent to router
 	p := perm.NewMux()
-	requireAccess := func(r *http.Request, perm string, info ...interface{}) error {
+	requireAccess := func(ctx context.Context, perm string, info ...interface{}) (err error) {
+
+		// get context information
+		r, ok := gourdctx.HTTPRequest(ctx)
+		if !ok {
+			serr := store.ErrorInternal
+			serr.ServerMsg = "missing request in context"
+			err = serr
+			return
+		}
+
 		log.Printf("Requesting permission to %s", perm)
 		a, err := oauth2.GetAccess(r)
 		if err == nil {
 			log.Printf("Access: %#v", a)
 		}
-		return err
+		return
 	}
 	p.HandleFunc("create post", requireAccess)
-	p.HandleFunc("load post", requireAccess)
+	p.HandleFunc("retrieve post", requireAccess)
 	p.HandleFunc("list post", requireAccess)
 	p.HandleFunc("update post", requireAccess)
 	p.HandleFunc("delete post", requireAccess)
@@ -45,9 +58,9 @@ func MainHandler() http.Handler {
 	// create router of the specific type
 	rtr := pat.New()
 
-	// add services rest to router
-	PostServiceRest(rtr, "/api", "post", "posts")
-	CommentServiceRest(rtr, "/api", "comment", "comments")
+	// add store rest to router
+	PostStoreRest(rtr, p, "/api", "post", "posts")
+	CommentStoreRest(rtr, p, "/api", "comment", "comments")
 	oauth2.RoutePat(rtr, "/oauth", m.GetEndpoints())
 
 	// add login form to router
@@ -60,7 +73,6 @@ func MainHandler() http.Handler {
 	n := negroni.New()
 	n.Use(negroni.Wrap(ch))
 	n.Use(negroni.Wrap(m.Middleware()))
-	n.Use(negroni.Wrap(p))
 
 	// use router in negroni
 	n.UseHandler(rtr)

@@ -1,4 +1,4 @@
-//go:generate gourd gen service -type=Post -coll=posts $GOFILE
+//go:generate gourd gen store -type=Post -coll=posts $GOFILE
 
 package example1
 

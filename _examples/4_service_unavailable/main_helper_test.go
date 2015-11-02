@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/gourd/kit/oauth2"
+	"github.com/gourd/kit/store"
+
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/pat"
-	"github.com/gourd/oauth2"
-	"github.com/gourd/service"
 	"github.com/yookoala/restit"
 	"log"
 	"math/rand"
@@ -106,24 +107,24 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		r := &http.Request{}
 
 		// generate dummy user
-		us, err := service.Providers.Service(r, "User")
+		us, err := store.Providers.Store(r, "User")
 		if err != nil {
 			panic(err)
 		}
 		u := dummyNewUser(password)
-		err = us.Create(service.NewConds(), u)
+		err = us.Create(store.NewConds(), u)
 		if err != nil {
 			panic(err)
 		}
 
 		// get related dummy client
-		cs, err := service.Providers.Service(r, "Client")
+		cs, err := store.Providers.Store(r, "Client")
 		if err != nil {
 			panic(err)
 		}
 		c := dummyNewClient(redirect)
 		c.UserId = u.Id
-		err = cs.Create(service.NewConds(), c)
+		err = cs.Create(store.NewConds(), c)
 		if err != nil {
 			panic(err)
 		}

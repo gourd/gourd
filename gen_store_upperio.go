@@ -7,13 +7,13 @@ import (
 )
 
 func init() {
-	t, err := templates.Asset("service/upperio.tpl")
+	t, err := templates.Asset("store/upperio.tpl")
 	if err != nil {
 		panic(err)
 	}
-	tpls.Append("gen service:upperio", string(t))
-	tpls.AddDeps("gen service:upperio", "gen:general")
-	tpls.AddPrep("gen service:upperio", func(in interface{}) (interface{}, error) {
+	tpls.Append("gen store:upperio", string(t))
+	tpls.AddDeps("gen store:upperio", "gen:general")
+	tpls.AddPrep("gen store:upperio", func(in interface{}) (interface{}, error) {
 		var data map[string]interface{}
 		var f interface{}
 		var id *goparser.FieldSpec

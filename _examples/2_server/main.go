@@ -2,7 +2,7 @@
 package main
 
 import (
-	"github.com/gourd/service/upperio"
+	"github.com/gourd/kit/store/upperio"
 
 	"net/http"
 	"os"

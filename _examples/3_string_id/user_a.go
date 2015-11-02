@@ -1,4 +1,4 @@
-//go:generate gourd gen service -type=UserA -coll=user_a $GOFILE
+//go:generate gourd gen store -type=UserA -coll=user_a $GOFILE
 
 package example
 

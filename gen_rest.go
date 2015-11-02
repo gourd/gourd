@@ -13,7 +13,7 @@ func init() {
 	appendCmds("gen", cli.Command{
 		Name:    "rest",
 		Aliases: []string{"s"},
-		Usage:   "generate rest from a service type",
+		Usage:   "generate rest from a store type",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "type, t",
@@ -21,9 +21,9 @@ func init() {
 				Usage: "type name of the entity, required",
 			},
 			cli.StringFlag{
-				Name:  "service, s",
+				Name:  "store, s",
 				Value: "",
-				Usage: "type name of the entity service, required",
+				Usage: "type name of the entity store, required",
 			},
 			cli.StringFlag{
 				Name:  "router, r",
@@ -33,21 +33,21 @@ func init() {
 			cli.StringFlag{
 				Name:  "output, o",
 				Value: "",
-				Usage: "output file name; default srcdir/<type>_service.go",
+				Usage: "output file name; default srcdir/<type>_store.go",
 			},
 		},
-		Action: genServiceRest,
+		Action: genStoreRest,
 	})
 }
 
-func genServiceRestFn(tn string) string {
+func genStoreRestFn(tn string) string {
 	r1 := regexp.MustCompile("[A-Z]+")
 	r2 := regexp.MustCompile("^\\_")
 	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_rest.go"
 }
 
-// generate the service rest go file
-func genServiceRest(c *cli.Context) {
+// generate the store rest go file
+func genStoreRest(c *cli.Context) {
 
 	// files to parse
 	var fns []string
@@ -66,12 +66,12 @@ func genServiceRest(c *cli.Context) {
 	}
 	tn := c.String("type")
 
-	// target service type
-	if c.String("service") == "" {
-		fmt.Println("Please provide the target service type")
+	// target store type
+	if c.String("store") == "" {
+		fmt.Println("Please provide the target store type")
 		os.Exit(1)
 	}
-	sn := c.String("service")
+	sn := c.String("store")
 
 	// router
 	var s string
@@ -90,7 +90,7 @@ func genServiceRest(c *cli.Context) {
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = genServiceRestFn(st.Name)
+			o = genStoreRestFn(st.Name)
 		} else {
 			o = c.String("output")
 		}
@@ -107,11 +107,11 @@ func genServiceRest(c *cli.Context) {
 
 		// write the generated output to file
 		err = tpls.New("gen rest:"+s).Execute(f, map[string]interface{}{
-			"Now":     now.Format(TIMEFORMAT),
-			"Ver":     VERSION,
-			"Pkg":     pkg,
-			"Type":    tn,
-			"Service": st,
+			"Now":   now.Format(TIMEFORMAT),
+			"Ver":   VERSION,
+			"Pkg":   pkg,
+			"Type":  tn,
+			"Store": st,
 		})
 		if err != nil {
 			fmt.Printf("Failed to write to file \"%s\".\n", o)

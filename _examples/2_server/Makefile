@@ -8,8 +8,8 @@ test: message generate build
 	go test -v
 
 clean:
-	rm -f *_service.go
-	rm -f *_service_rest.go
+	rm -f *_store.go
+	rm -f *_store_rest.go
 	rm -f flag.*
 	rm -f example
 
@@ -30,11 +30,11 @@ flag.deps:
 	go get github.com/codegangsta/negroni
 	go get github.com/gorilla/pat
 	go get upper.io/db/sqlite
-	go get github.com/gourd/service
-	go get github.com/gourd/service/upperio
 	go get github.com/gourd/codec
-	go get github.com/gourd/oauth2
-	go get github.com/gourd/perm
+	go get github.com/gourd/kit/store
+	go get github.com/gourd/kit/store/upperio
+	go get github.com/gourd/kit/oauth2
+	go get github.com/gourd/kit/perm
 	go get github.com/yookoala/restit
 	touch flag.deps
 

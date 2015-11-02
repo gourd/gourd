@@ -1,8 +1,8 @@
 package example
 
 import (
-	"github.com/gourd/service"
-	"github.com/gourd/service/upperio"
+	"github.com/gourd/kit/store"
+	"github.com/gourd/kit/store/upperio"
 
 	"math/rand"
 	"testing"
@@ -28,15 +28,15 @@ func randStr(n int) string {
 
 }
 
-func TestUserAService(t *testing.T) {
+func TestUserAStore(t *testing.T) {
 
-	usp, err := service.Providers.Get("UserA")
+	usp, err := store.Providers.Get("UserA")
 	if err != nil {
-		t.Logf("Unable to obtain service provider: %s", err.Error())
+		t.Logf("Unable to obtain store provider: %s", err.Error())
 	}
-	us, err := usp.Service(nil)
+	us, err := usp.Store(nil)
 	if err != nil {
-		t.Logf("Unable to obtain service: %s", err.Error())
+		t.Logf("Unable to obtain store: %s", err.Error())
 	}
 
 	// create user twice, test key collision
@@ -62,15 +62,15 @@ func TestUserAService(t *testing.T) {
 
 }
 
-func TestUserBService(t *testing.T) {
+func TestUserBStore(t *testing.T) {
 
-	usp, err := service.Providers.Get("UserB")
+	usp, err := store.Providers.Get("UserB")
 	if err != nil {
-		t.Logf("Unable to obtain service provider: %s", err.Error())
+		t.Logf("Unable to obtain store provider: %s", err.Error())
 	}
-	us, err := usp.Service(nil)
+	us, err := usp.Store(nil)
 	if err != nil {
-		t.Logf("Unable to obtain service: %s", err.Error())
+		t.Logf("Unable to obtain store: %s", err.Error())
 	}
 
 	// create user twice, test key collision
