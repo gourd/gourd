@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/gourd/codec"
 	"github.com/gourd/kit/perm"
 	"github.com/gourd/kit/store/upperio"
 
@@ -27,9 +26,6 @@ func gourdServer() (h http.Handler) {
 	upperio.Define("default", driver.Adapter, driver.ConnectionURL{
 		Database: `some-nonsense`,
 	})
-
-	// create router specific / independent middleware
-	ch := &codec.Handler{}
 
 	// approve all permission test
 	p := perm.NewMux()
@@ -58,7 +54,6 @@ func gourdServer() (h http.Handler) {
 	// create negroni middleware handler
 	// with middlewares
 	n := negroni.New()
-	n.Use(negroni.Wrap(ch))
 
 	// use router in negroni
 	n.UseHandler(rtr)

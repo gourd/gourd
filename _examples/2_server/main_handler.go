@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
-	"github.com/gourd/codec"
 	gourdctx "github.com/gourd/kit/context"
 	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/perm"
@@ -21,9 +20,6 @@ import (
 // Should also be a http.Handler that
 // cound be tested by wrapping httptest sevrer
 func MainHandler() http.Handler {
-
-	// create router specific / independent middleware
-	ch := &codec.Handler{}
 
 	// oauth2 manager with default settings
 	m := oauth2.NewManager()
@@ -71,7 +67,6 @@ func MainHandler() http.Handler {
 	// create negroni middleware handler
 	// with middlewares
 	n := negroni.New()
-	n.Use(negroni.Wrap(ch))
 	n.Use(negroni.Wrap(m.Middleware()))
 
 	// use router in negroni

@@ -44,7 +44,6 @@ flag.testDeps:
 	go get -u github.com/go-kit/kit/endpoint
 	go get -u github.com/go-kit/kit/transport/http
 	go get -u github.com/gorilla/pat
-	go get -u github.com/gourd/codec
 	go get -u github.com/gourd/kit/context
 	go get -u github.com/gourd/kit/oauth2
 	go get -u github.com/gourd/kit/perm

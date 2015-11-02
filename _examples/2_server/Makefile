@@ -31,7 +31,6 @@ flag.deps:
 	go get github.com/codegangsta/negroni
 	go get github.com/gorilla/pat
 	go get upper.io/db/sqlite
-	go get github.com/gourd/codec
 	go get github.com/gourd/kit/store
 	go get github.com/gourd/kit/store/upperio
 	go get github.com/gourd/kit/oauth2
