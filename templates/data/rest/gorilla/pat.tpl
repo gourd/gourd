@@ -21,48 +21,20 @@
 
 {{ define "code" }}
 
-// {{ .Service.Name }}Endpoints generate endpoints for CURD
+// {{ .Service.Name }}Endpoints return CURD endpoints for {{ .Service.Name }}
 func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoint.Endpoint) {
 
 	// variables to use later
-	blankService := &{{ .Service.Name }}{}
-	allocEntity := blankService.AllocEntity
-	allocEntityList := blankService.AllocEntityList
+	allocEntity := func() *{{ .Type }} { return &{{ .Type }}{} }
+	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
 	getService := Get{{ .Service.Name }}
 	serviceName := "{{ .Service.Name }}"
-
-	// enforce entity property before create
-	prepareCreate := func(r *http.Request, e service.EntityPtr) (err error) {
-		// placeholder: anything you want to do with the entity
-		//              before append to database
-		return
-	}
-
-	// enforce entity property before update
-	prepareUpdate := func(e service.EntityPtr, el service.EntityListPtr) (err error) {
-		// placeholder: anything you want to do with the entity
-		//              before update to database
-		return
-	}
-
-	// prepare entity list
-	prepareEntityList := func(r *http.Request, el service.EntityListPtr) (err error) {
-		// placeholder: anything you want to do with the entity
-		//              before update to database
-		return
-	}
-
-	// handle permission related issue
-	permAllow := func(r *http.Request, permission string, info ...interface{}) error {
-		m := perm.GetMux(r)
-		return m.Allow(r, permission, info...)
-	}
 
 	// store endpoints here
 	// TODO: may have new struct to store
 	endpoints = make(map[string]endpoint.Endpoint)
 
-	endpoints["Create"] = func(ctx context.Context, e interface{}) (res interface{}, err error) {
+	endpoints["create"] = func(ctx context.Context, e interface{}) (res interface{}, err error) {
 
 		// get context information
 		r, ok := gourdctx.HTTPRequest(ctx)
@@ -72,9 +44,6 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 			err = serr
 			return
 		}
-
-		// enforce create integrity
-		prepareCreate(r, e)
 
 		// get service
 		s, err := getService(r)
@@ -86,14 +55,8 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 		}
 		defer s.Close()
 
-		// check permission
-		if err = permAllow(r, "create "+noun, e); err != nil {
-			err = service.ErrorForbidden
-			return
-		}
-
 		// create entity
-		log.Printf("[!!!] entity to create: %#v", e)
+		log.Printf("create: %#v", e)
 		err = s.Create(nil, e)
 		if err != nil {
 			serr := service.ErrorInternal
@@ -104,12 +67,12 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 		}
 
 		// encode response
-		res = service.NewResponse(nounp, []interface{}{e})
+		res = []interface{}{e}
 		return
 
 	}
 
-	endpoints["Retrieve"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+	endpoints["retrieve"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
 		q := request.(service.Query)
 
@@ -149,26 +112,14 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 		if s.Len(el) == 0 {
 			err = service.ErrorNotFound
 			return
-		} else if err = permAllow(r, "load "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		} else if err = prepareEntityList(r, el); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
 		}
 
-		res = service.NewResponse(nounp, el)
+		res = el
 		return
 
 	}
 
-	endpoints["List"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+	endpoints["list"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
 		q := request.(service.Query)
 
@@ -192,7 +143,7 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 		defer s.Close()
 
 		// allocate memory for variables
-		var el interface{} = allocEntityList()
+		el := allocEntityList()
 
 		err = s.Search(q).All(el)
 		if err != nil {
@@ -203,32 +154,12 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 			return
 		}
 
-		// encode response
-		if err = permAllow(r, "list "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		} else if err = prepareEntityList(r, el); err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error encoding %s list: %s",
-				noun, err)
-			err = serr
-			return
-		} else if s.Len(el) == 0 {
-			el = &[]int{}
-		}
-
-		res = service.NewResponse(nounp, el)
+		res = el
 		return
 
 	}
 
-	endpoints["Update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
-
-		// allocate memory for variables
-		var el interface{} = allocEntityList()
+	endpoints["update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
 		rmap := request.(map[string]interface{})
 		q := rmap["query"].(service.Query)
@@ -254,34 +185,6 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 		}
 		defer s.Close()
 
-		// find the content of the id
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun, err)
-			err = serr
-			return
-		}
-
-		// enforce update integrity
-		err = prepareUpdate(e, el)
-		if err != nil {
-			serr := service.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf(
-				"error Preparing with PrepDb %s: %s", noun, err)
-			err = serr
-			return
-		}
-
-		// test permission
-		if err = permAllow(r, "update "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		}
-
 		// update entity
 		if err = s.Update(cond, e); err != nil {
 			serr := service.ErrorInternal
@@ -292,11 +195,11 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 			return
 		}
 
-		res = service.NewResponse(nounp, []interface{}{e})
+		res = []interface{}{e}
 		return
 	}
 
-	endpoints["Delete"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
+	endpoints["delete"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
 		// allocate memory for variables
 		e := allocEntity()
@@ -335,14 +238,6 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 			return
 		}
 
-		// test permission
-		if err = permAllow(r, "delete "+noun, el); err != nil {
-			serr := service.ErrorForbidden
-			serr.ServerMsg = err.Error()
-			err = serr
-			return
-		}
-
 		// delete entity
 		if err = s.Delete(cond); err != nil {
 			serr := service.ErrorInternal
@@ -353,7 +248,7 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 			return
 		}
 
-		res = service.NewResponse(nounp, []interface{}{e})
+		res = []interface{}{e}
 		return
 
 	}
@@ -365,8 +260,163 @@ func {{ .Service.Name }}Endpoints(noun, nounp string) (endpoints map[string]endp
 func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	// variables to use later
-	blankService := &{{ .Service.Name }}{}
-	allocEntity := blankService.AllocEntity
+	allocEntity := func() *{{ .Type }} { return &{{ .Type }}{} }
+	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
+	getService := Get{{ .Service.Name }}
+	serviceName := "{{ .Service.Name }}"
+
+	// enforce entity property before create
+	var prepareCreate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
+		return func (ctx context.Context, request interface{}) (respond interface{}, err error) {
+			// placeholder: anything you want to do with the entity
+			//              before append to database
+			return inner(ctx, request)
+		}
+	}
+
+	// enforce entity property before update
+	var prepareUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint { 
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+
+			rmap := request.(map[string]interface{})
+
+			// get context information
+			r, ok := gourdctx.HTTPRequest(ctx)
+			if !ok {
+				serr := service.ErrorInternal
+				serr.ServerMsg = "missing request in context"
+				err = serr
+				return
+			}
+
+			el := allocEntityList()
+			q := rmap["query"].(service.Query)
+
+			// get service
+			s, err := getService(r)
+			if err != nil {
+				serr := service.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error obtaining %s service (%s)", serviceName, err)
+				err = serr
+				return
+			}
+			defer s.Close()
+
+			// find the content of the id
+			err = s.Search(q).All(el)
+			if err != nil {
+				serr := service.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+					noun, err)
+				err = serr
+				return
+			}
+
+			// tell the inner
+			if len(*el) > 0 {
+				rmap["prev"] = (*el)[0]
+			}
+
+			// placeholder: anything you want to do with the entity
+			//              before update to database
+			return inner(ctx, rmap)
+		}
+	}
+
+	// prepare list
+	var prepareList endpoint.Middleware = func (inner endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			response, err = inner(ctx, request)
+			if err != nil {
+				return
+			}
+
+			list := response.(*[]{{ .Type }})
+			if list == nil || *list == nil {
+				*list = make([]{{ .Type }}, 0)
+			}
+
+			// placeholder: anything you want to do with the entity
+			//              list response
+			return list, nil
+		}
+	}
+
+	// wrap inner response with default protocol
+	var prepareProtocol endpoint.Middleware = func (inner endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+
+			v, err := inner(ctx, request)
+			if err != nil {
+				return
+			}
+
+			response = service.NewResponse(nounp, v)
+			return
+
+		}
+	}
+
+	// generates request permission checker middleware
+	genRequestPermChecker := func (permission string) endpoint.Middleware {
+		return func (inner endpoint.Endpoint) endpoint.Endpoint {
+			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+
+				// get context information
+				r, ok := gourdctx.HTTPRequest(ctx)
+				if !ok {
+					serr := service.ErrorInternal
+					serr.ServerMsg = "missing request in context"
+					err = serr
+					return
+				}
+
+				m := perm.GetMux(r)
+				err = m.Allow(r, permission, request)
+				if err != nil {
+					return
+				}
+
+				return inner(ctx, request)
+			}
+		}
+	}
+
+	// generates response permission checker middleware
+	genResponsePermChecker := func (permission string) endpoint.Middleware {
+		return func (inner endpoint.Endpoint) endpoint.Endpoint {
+			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+
+				v, err := inner(ctx, request)
+				if err != nil {
+					return
+				}
+
+				// get context information
+				r, ok := gourdctx.HTTPRequest(ctx)
+				if !ok {
+					serr := service.ErrorInternal
+					serr.ServerMsg = "missing request in context"
+					err = serr
+					return
+				}
+
+				m := perm.GetMux(r)
+				err = m.Allow(r, permission, request, v)
+				if err != nil {
+					return
+				}
+
+				response = v
+				return
+
+			}
+		}
+	}
+
+	//
+	// ====
+	//
 
 	// decodeIDReq generically decoded :id field
 	// (works with pat based URL routing)
@@ -442,6 +492,8 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 			return
 		}
 
+		rmap["prev"] = nil
+
 		request = rmap
 		return
 	}
@@ -477,14 +529,14 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 
 	endpoints := {{ .Service.Name }}Endpoints(noun, nounp)
 
-	// define middleware chain for all endpoints
-	mwares := endpoint.Chain(
-		gourdctx.ClearGorilla)
-
 	// Create
 	postHandler := httptransport.NewServer(
 		gourdctx.NewEmpty(),
-		mwares(endpoints["Create"]),
+		endpoint.Chain(
+			gourdctx.ClearGorilla,
+			prepareProtocol,
+			prepareCreate,
+			genRequestPermChecker("create "+noun))(endpoints["create"]),
 		decodeJSONReq,
 		encodeJSONResp,
 		httptransport.ServerBefore(gourdctx.UseGorilla),
@@ -494,7 +546,11 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	// Retrieve single
 	getHandler := httptransport.NewServer(
 		gourdctx.NewEmpty(),
-		mwares(endpoints["Retrieve"]),
+		endpoint.Chain(
+			gourdctx.ClearGorilla,
+			prepareProtocol,
+			prepareList,
+			genResponsePermChecker("load "+noun))(endpoints["retrieve"]),
 		decodeIDReq,
 		encodeJSONResp,
 		httptransport.ServerBefore(gourdctx.UseGorilla),
@@ -504,7 +560,11 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	// Retrieve list
 	listHandler := httptransport.NewServer(
 		gourdctx.NewEmpty(),
-		mwares(endpoints["List"]),
+		endpoint.Chain(
+			gourdctx.ClearGorilla,
+			prepareProtocol,
+			prepareList,
+			genResponsePermChecker("list "+noun))(endpoints["list"]),
 		decodeListReq,
 		encodeJSONResp,
 		httptransport.ServerBefore(gourdctx.UseGorilla),
@@ -514,7 +574,11 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	// Update single
 	putHandler := httptransport.NewServer(
 		gourdctx.NewEmpty(),
-		mwares(endpoints["Update"]),
+		endpoint.Chain(
+			gourdctx.ClearGorilla,
+			prepareProtocol,
+			prepareUpdate,
+			genRequestPermChecker("update "+noun))(endpoints["update"]),
 		decodeUpdate,
 		encodeJSONResp,
 		httptransport.ServerBefore(gourdctx.UseGorilla),
@@ -524,7 +588,10 @@ func {{ .Service.Name }}Rest(r *pat.Router, base, noun, nounp string) {
 	// Delete single
 	deleteHandler := httptransport.NewServer(
 		gourdctx.NewEmpty(),
-		mwares(endpoints["Delete"]),
+		endpoint.Chain(
+			gourdctx.ClearGorilla,
+			prepareProtocol,
+			genRequestPermChecker("delete "+noun))(endpoints["delete"]),
 		decodeIDReq,
 		encodeJSONResp,
 		httptransport.ServerBefore(gourdctx.UseGorilla),
