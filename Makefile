@@ -12,6 +12,7 @@ test: build flag.testDeps
 	@echo "============================="
 	@echo " Run Examples as Test"
 	@echo "============================="
+	go test -v
 	cd _examples/1_basic && make test
 	cd _examples/2_server && make test
 	cd _examples/3_string_id && make test
