@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/gourd/gourd/templates"
+
 	"fmt"
 	"github.com/codegangsta/cli"
 	"os"
@@ -9,11 +11,11 @@ import (
 )
 
 func init() {
-	// declare sub-command "gourd gen rest"
+	// declare sub-command "gourd gen store"
 	appendCmds("gen", cli.Command{
-		Name:    "rest",
+		Name:    "endpoints",
 		Aliases: []string{"s"},
-		Usage:   "generate rest from a store type",
+		Usage:   "generate endpoints from a store type",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "type, t",
@@ -26,28 +28,30 @@ func init() {
 				Usage: "type name of the entity store, required",
 			},
 			cli.StringFlag{
-				Name:  "router, r",
-				Value: "gorilla/pat",
-				Usage: "name of router to use",
-			},
-			cli.StringFlag{
 				Name:  "output, o",
 				Value: "",
 				Usage: "output file name; default srcdir/<type>_store.go",
 			},
 		},
-		Action: genStoreRest,
+		Action: genEndpoints,
 	})
+
+	t, err := templates.Asset("endpoints/endpoints.tpl")
+	if err != nil {
+		panic(err)
+	}
+	tpls.Append("gen endpoints:endpoints", string(t))
+	tpls.AddDeps("gen endpoints:endpoints", "gen:general")
 }
 
-func genStoreRestFn(tn string) string {
+func genEndpointsFn(tn string) string {
 	r1 := regexp.MustCompile("[A-Z]+")
 	r2 := regexp.MustCompile("^\\_")
-	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_rest.go"
+	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_endpoints.go"
 }
 
-// generate the store rest go file
-func genStoreRest(c *cli.Context) {
+// generate the endpoints go file
+func genEndpoints(c *cli.Context) {
 
 	// files to parse
 	var fns []string
@@ -73,10 +77,6 @@ func genStoreRest(c *cli.Context) {
 	}
 	sn := c.String("store")
 
-	// router
-	var s string
-	s = c.String("router")
-
 	// read type of type name from given file(s)
 	pkg, sts, err := readTypeFile(fns[0], []string{sn})
 	if err != nil {
@@ -90,7 +90,7 @@ func genStoreRest(c *cli.Context) {
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = genStoreRestFn(st.Name)
+			o = genEndpointsFn(tn)
 		} else {
 			o = c.String("output")
 		}
@@ -106,12 +106,12 @@ func genStoreRest(c *cli.Context) {
 		}
 
 		// write the generated output to file
-		err = tpls.New("gen rest:"+s).Execute(f, map[string]interface{}{
+		err = tpls.New("gen endpoints:endpoints").Execute(f, map[string]interface{}{
 			"Now":   now.Format(TIMEFORMAT),
 			"Ver":   VERSION,
 			"Pkg":   pkg,
 			"Type":  tn,
-			"Store": st.Name,
+			"Store": st,
 		})
 		if err != nil {
 			fmt.Printf("Failed to write to file \"%s\".\n", o)

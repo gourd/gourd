@@ -38,22 +38,22 @@ func init() {
 				Usage: "output file name; default srcdir/<type>_store.go",
 			},
 		},
-		Action: genService,
+		Action: genStore,
 	})
 }
 
-func genServiceFn(tn string) string {
+func genStoreFn(tn string) string {
 	r1 := regexp.MustCompile("[A-Z]+")
 	r2 := regexp.MustCompile("^\\_")
 	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_store.go"
 }
 
-func genServiceTpl(name string, w io.Writer) {
+func genStoreTpl(name string, w io.Writer) {
 
 }
 
 // generate the store go file
-func genService(c *cli.Context) {
+func genStore(c *cli.Context) {
 
 	// files to parse
 	var fns []string
@@ -100,7 +100,7 @@ func genService(c *cli.Context) {
 		// output file
 		var o string
 		if c.String("output") == "" {
-			o = genServiceFn(t.Name)
+			o = genStoreFn(t.Name)
 		} else {
 			o = c.String("output")
 		}
