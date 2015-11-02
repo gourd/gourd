@@ -8,7 +8,8 @@ test: message generate build
 
 clean:
 	rm -f *_store.go
-	rm -f *_store_rest.go
+	rm -f *_endpoints.go
+	rm -f *_rest.go
 	rm -f flag.*
 	rm -f example
 

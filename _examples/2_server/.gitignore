@@ -1,4 +1,5 @@
 *_store.go
-*_service_rest.go
+*_endpoints.go
+*_rest.go
 flag.*
 example
