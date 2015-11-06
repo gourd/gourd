@@ -1,13 +1,15 @@
 package main
 
 import (
+	"io"
+
+	"github.com/gourd/gourd/compile"
 	"github.com/gourd/gourd/templates"
 
 	"fmt"
-	"github.com/codegangsta/cli"
 	"os"
-	"regexp"
-	"strings"
+
+	"github.com/codegangsta/cli"
 )
 
 func init() {
@@ -40,84 +42,83 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	tpls.Append("gen endpoints:endpoints", string(t))
-	tpls.AddDeps("gen endpoints:endpoints", "gen:general")
+	tpls.Append("gen endpoints", string(t))
+	tpls.AddDeps("gen endpoints", "gen:general")
 }
 
-func genEndpointsFn(tn string) string {
-	r1 := regexp.MustCompile("[A-Z]+")
-	r2 := regexp.MustCompile("^\\_")
-	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_endpoints.go"
-}
+func decodeEndpoints(c *cli.Context) (ctx compile.Context, err error) {
 
-// generate the endpoints go file
-func genEndpoints(c *cli.Context) {
+	ctx = compile.Context{
+		"Now": now.Format(TIMEFORMAT),
+		"Ver": VERSION,
+	}
 
 	// files to parse
 	var fns []string
 	if len(c.Args()) == 0 {
 		// TODO: find all .go in the current folder
-		fmt.Println("Please provide files to parse")
-		os.Exit(1)
-	} else {
-		fns = c.Args()
+		err = compile.Error("Please provide files to parse")
+		return
 	}
+	fns = c.Args()
 
 	// target entity type
 	if c.String("type") == "" {
-		fmt.Println("Please provide the target entity type")
-		os.Exit(1)
+		err = compile.Error("Please provide the target entity type")
+		return
 	}
-	tn := c.String("type")
+	ctx.Set("Type", c.String("type"))
 
 	// target store type
 	if c.String("store") == "" {
-		fmt.Println("Please provide the target store type")
-		os.Exit(1)
+		err = compile.Error("Please provide the target store type")
+		return
 	}
-	sn := c.String("store")
+	ctx.Set("StoreName", c.String("store"))
 
-	// read type of type name from given file(s)
-	pkg, sts, err := readTypeFile(fns[0], []string{sn})
+	// parse type of type name from given file(s)
+	pkg, sts, err := readTypeFile(fns[0], []string{ctx.GetStr("StoreName")})
 	if err != nil {
-		fmt.Printf("Error parsing \"%s\". Error: %s. Exit.", fns[0], err.Error())
-		os.Exit(1)
+		err = compile.Error("Error parsing %#v. Error: %#v. Exit.", fns[0], err.Error())
+		return
 	}
 
-	// loop through each type found
-	for _, st := range sts {
+	if len(sts) != 1 {
+		err = compile.Error("Type %#v not found", ctx.GetStr("TypeName"))
+		return
+	}
 
-		// output file
-		var o string
-		if c.String("output") == "" {
-			o = genEndpointsFn(tn)
-		} else {
-			o = c.String("output")
-		}
+	ctx.Set("Pkg", pkg)
+	ctx.Set("Store", sts[0])
+	return
 
-		// create output file (if not exists)
-		f, err := os.Create(o)
-		defer FormatFile(o)
-		defer f.Close()
-		if err != nil {
-			fmt.Printf("Failed to create output file \"%s\".\n", o)
-			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-			os.Exit(1)
-		}
+}
 
-		// write the generated output to file
-		err = tpls.New("gen endpoints:endpoints").Execute(f, map[string]interface{}{
-			"Now":   now.Format(TIMEFORMAT),
-			"Ver":   VERSION,
-			"Pkg":   pkg,
-			"Type":  tn,
-			"Store": st,
-		})
-		if err != nil {
-			fmt.Printf("Failed to write to file \"%s\".\n", o)
-			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-			os.Exit(1)
+// encode results to io writer (e.g. file)
+func encodeEndpoints(w io.Writer, ctx compile.Context) error {
+	// write the generated output to file, according to storage engine
+	return tpls.New("gen endpoints").Execute(w, ctx)
+}
+
+// generate the endpoints go file
+func genEndpoints(c *cli.Context) {
+
+	// output file
+	var out string
+	if c.String("output") == "" {
+		out = compile.SubfixFn("endpoints")(c.String("type"))
+	} else {
+		out = c.String("output")
+	}
+
+	// compile the file
+	com := compile.NewCompiler(decodeEndpoints, encodeEndpoints)
+	if err := compile.CompileToFile(out, c, com); err != nil {
+		fmt.Println(err.Error())
+		if gerr, ok := err.(compile.GourdError); ok {
+			os.Exit(gerr.Code())
 		}
+		os.Exit(1)
 	}
 
 }
