@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/codegangsta/cli"
 )
 
 func init() {
@@ -29,6 +30,10 @@ func init() {
 				Name:  "router, r",
 				Value: "gorilla/pat",
 				Usage: "name of router to use",
+			},
+			cli.BoolFlag{
+				Name:  "preserve, p",
+				Usage: "if this flag is set, will not overwrite existing file",
 			},
 			cli.StringFlag{
 				Name:  "output, o",
@@ -77,6 +82,23 @@ func genStoreRest(c *cli.Context) {
 	var s string
 	s = c.String("router")
 
+	// output file
+	var o string
+	if c.String("output") == "" {
+		o = "./" + genStoreRestFn(tn)
+	} else {
+		o = c.String("output")
+	}
+
+	// check if the file exists before generating, except with "force" flag
+	if _, err := os.Stat(o); !os.IsNotExist(err) {
+		if c.Bool("preserve") == true {
+			fmt.Printf(
+				"File %#v exists. Preserve the file\n", o)
+			return
+		}
+	}
+
 	// read type of type name from given file(s)
 	pkg, sts, err := readTypeFile(fns[0], []string{sn})
 	if err != nil {
@@ -86,14 +108,6 @@ func genStoreRest(c *cli.Context) {
 
 	// loop through each type found
 	for _, st := range sts {
-
-		// output file
-		var o string
-		if c.String("output") == "" {
-			o = genStoreRestFn(tn)
-		} else {
-			o = c.String("output")
-		}
 
 		// create output file (if not exists)
 		f, err := os.Create(o)
@@ -118,6 +132,9 @@ func genStoreRest(c *cli.Context) {
 			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
 			os.Exit(1)
 		}
+
+		fmt.Printf("Generated: %#v\n", o)
+
 	}
 
 }
