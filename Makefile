@@ -32,7 +32,7 @@ flag.genDeps:
 	touch flag.genDeps
 
 flag.deps:
-	go get -u github.com/gourd/service/upperio
+	go get -u github.com/gourd/kit/store/upperio
 	go get -u upper.io/db/sqlite
 	go get -u github.com/codegangsta/cli
 	go get -u github.com/gourd/goparser
