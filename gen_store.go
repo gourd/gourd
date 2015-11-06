@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
-	"github.com/gourd/goparser"
 	"io"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/codegangsta/cli"
+	"github.com/gourd/goparser"
+	"github.com/gourd/gourd/compile"
 )
 
 func init() {
@@ -20,17 +22,21 @@ func init() {
 			cli.StringFlag{
 				Name:  "type, t",
 				Value: "",
-				Usage: "comma-separated list of type names; must be set",
+				Usage: "type name of object in the store; must be set",
 			},
 			cli.StringFlag{
 				Name:  "storage, s",
 				Value: "upperio",
-				Usage: "the storage type behind the store",
+				Usage: "the storage engine behind the store",
 			},
 			cli.StringFlag{
 				Name:  "coll, c",
 				Value: "",
 				Usage: "name of storage collection (i.e. MySQL table name)",
+			},
+			cli.BoolFlag{
+				Name:  "preserve, p",
+				Usage: "if this flag is set, will not overwrite existing file",
 			},
 			cli.StringFlag{
 				Name:  "output, o",
@@ -42,105 +48,100 @@ func init() {
 	})
 }
 
-func genStoreFn(tn string) string {
-	r1 := regexp.MustCompile("[A-Z]+")
-	r2 := regexp.MustCompile("^\\_")
-	return strings.ToLower(r2.ReplaceAllString(r1.ReplaceAllString(tn, "_$0"), "")) + "_store.go"
-}
+func decodeStore(c *cli.Context) (ctx compile.Context, err error) {
 
-func genStoreTpl(name string, w io.Writer) {
-
-}
-
-// generate the store go file
-func genStore(c *cli.Context) {
+	ctx = compile.Context{
+		"Now": now.Format(TIMEFORMAT),
+		"Ver": VERSION,
+	}
 
 	// files to parse
 	var fns []string
 	if len(c.Args()) == 0 {
 		// TODO: find all .go in the current folder
-		fmt.Println("Please provide files to parse")
-		os.Exit(1)
-	} else {
-		fns = c.Args()
+		err = compile.Error("Please provide files to parse")
+		return
 	}
+	fns = c.Args()
 
 	// target type
 	if c.String("type") == "" {
 		fmt.Println("Please provide the target type(s)")
 		os.Exit(1)
 	}
-	tn := c.String("type")
+	ctx.Set("TypeName", c.String("type"))
 
-	// separated the type names with comma
-	tns := strings.Split(tn, ",")
-
-	// storage
-	var s string
-	s = c.String("storage")
+	// storage engine
+	ctx.Set("Storage", c.String("storage"))
 
 	// collection name
-	var cn string
-	cn = c.String("coll")
-	if cn == "" {
+	if coll := c.String("coll"); coll == "" {
 		r := regexp.MustCompile("[A-Z]+")
-		cn = strings.ToLower(r.ReplaceAllString(tn, "_$0"))
+		cn := strings.ToLower(r.ReplaceAllString(ctx.GetStr("TypeName"), "_$0"))
+		ctx.Set("Coll", cn)
+	} else {
+		ctx.Set("Coll", coll)
 	}
 
-	// read type of type name from given file(s)
-	pkg, ts, err := readTypeFile(fns[0], tns)
+	// parse type of given type name from given file(s)
+	pkg, ts, err := readTypeFile(fns[0], []string{ctx.GetStr("TypeName")})
 	if err != nil {
-		fmt.Printf("Error parsing \"%s\". Error: %s. Exit.", fns[0], err.Error())
-		os.Exit(1)
+		err = compile.Error("Error parsing %#v. Error: %#v. Exit.", fns[0], err.Error())
+		return
 	}
 
-	// loop through each type found
-	for _, t := range ts {
+	if len(ts) != 1 {
+		err = compile.Error("Type %#v not found", ctx.GetStr("TypeName"))
+		return
+	}
 
-		// output file
-		var o string
-		if c.String("output") == "" {
-			o = genStoreFn(t.Name)
-		} else {
-			o = c.String("output")
-		}
+	ctx.Set("Pkg", pkg)
 
-		// create output file (if not exists)
-		f, err := os.Create(o)
-		defer FormatFile(o)
-		defer f.Close()
-		if err != nil {
-			fmt.Printf("Failed to create output file \"%s\".\n", o)
-			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-			os.Exit(1)
-		}
+	t := ts[0]
 
-		// find the first id field of the type
-		// (there shouldn't be more than 1 at all)
-		var id *goparser.FieldSpec
-		for field := range t.FieldsTagged("db", "id") {
-			id = field
-		}
-		if id == nil {
-			fmt.Printf("Failed to locate db id of the type \"%s\".\n", t.Name)
-			fmt.Printf("Cannot generate without id.\nExit.\n")
-			os.Exit(1)
-		}
+	// find the first id field of the type
+	// (there shouldn't be more than 1 at all)
+	var id *goparser.FieldSpec
+	for field := range t.FieldsTagged("db", "id") {
+		id = field
+	}
+	if id == nil {
+		err = compile.Error("Failed to locate db id of the type %#v.\n"+
+			"Cannot generate without id.",
+			t.Name)
+		return
+	}
 
-		// write the generated output to file
-		err = tpls.New("gen store:"+s).Execute(f, map[string]interface{}{
-			"Now":  now.Format(TIMEFORMAT),
-			"Ver":  VERSION,
-			"Pkg":  pkg,
-			"Type": t,
-			"Id":   id,
-			"Coll": cn,
-		})
-		if err != nil {
-			fmt.Printf("Failed to write to file \"%s\".\n", o)
-			fmt.Printf("Error: \"%s\"\nExit.\n", err.Error())
-			os.Exit(1)
+	ctx.Set("Id", id)
+	ctx.Set("Type", t)
+	return
+}
+
+// encode results to io writer (e.g. file)
+func encodeStore(w io.Writer, ctx compile.Context) error {
+	// write the generated output to file, according to storage engine
+	return tpls.New("gen store:"+ctx.GetStr("Storage")).Execute(w, ctx)
+}
+
+// generate the store go file
+func genStore(c *cli.Context) {
+
+	// output file
+	var out string
+	if c.String("output") == "" {
+		out = compile.SubfixFn("store")(c.String("type"))
+	} else {
+		out = c.String("output")
+	}
+
+	// compile the file
+	com := compile.NewCompiler(decodeStore, encodeStore)
+	if err := compile.CompileToFile(out, c, com); err != nil {
+		fmt.Println(err.Error())
+		if gerr, ok := err.(compile.GourdError); ok {
+			os.Exit(gerr.Code())
 		}
+		os.Exit(1)
 	}
 
 }

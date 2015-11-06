@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gourd/goparser"
+	"github.com/gourd/gourd/compile"
 	"github.com/gourd/gourd/templates"
 )
 
@@ -19,7 +21,7 @@ func init() {
 		var id *goparser.FieldSpec
 		var ok bool
 
-		if data, ok = in.(map[string]interface{}); !ok {
+		if data, ok = in.(compile.Context); !ok {
 			return in, fmt.Errorf("Unable to prepare. Incorrect data provided: %#v", in)
 		}
 
