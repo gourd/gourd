@@ -69,5 +69,11 @@ func CompileToFile(fn string, c *cli.Context, com Compiler) (err error) {
 		return
 	}
 
-	return com.Compile(f, c)
+	// compile the file
+	err = com.Compile(f, c)
+	if err != nil {
+		// clean up the file if has error
+		defer os.Remove(fn)
+	}
+	return
 }
