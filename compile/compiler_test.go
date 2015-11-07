@@ -103,6 +103,10 @@ func TestCompileToFile_Preserve(t *testing.T) {
 	// generate the file again
 	if err := compile.CompileToFile(fn, c, com); err == nil {
 		t.Error("expect error but got nil")
+	} else if cerr, ok := err.(compile.GourdError); !ok {
+		t.Errorf("expect GourdError got %#v", err)
+	} else if want, have := 0, cerr.Code(); want != have {
+		t.Errorf("expect code %#v, got %#v", want, have)
 	}
 
 }

@@ -54,7 +54,7 @@ func CompileToFile(fn string, c *cli.Context, com Compiler) (err error) {
 	// check if the file exists before generating, except with "force" flag
 	if _, ierr := os.Stat(fn); !os.IsNotExist(ierr) {
 		if c.Bool("preserve") == true {
-			err = Error("File %#v exists. Preserve the file", fn)
+			err = Exit("File %#v exists. Preserve the file", fn)
 			return
 		}
 	}
