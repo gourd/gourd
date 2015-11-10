@@ -19,7 +19,7 @@
 	"strings"
 {{ end }}
 
-{{ define "code" }}	
+{{ define "code" }}
 
 // {{ .Store }}Rest binds store to pat router
 func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
@@ -40,7 +40,7 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 	}
 
 	// enforce entity property before update
-	var prepareUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint { 
+	var prepareUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
 			rmap := request.(map[string]interface{})
@@ -96,14 +96,16 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 				return
 			}
 
-			list := response.(*[]{{ .Type }})
+			vmap := response.(map[string]interface{})
+			list := vmap[nounp].(*[]{{ .Type }})
 			if list == nil || *list == nil {
 				*list = make([]{{ .Type }}, 0)
 			}
+			vmap[nounp] = list
 
 			// placeholder: anything you want to do with the entity
 			//              list response
-			return list, nil
+			return vmap, nil
 		}
 	}
 
@@ -116,9 +118,14 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 				return
 			}
 
-			response = store.NewResponse(nounp, v)
-			return
+			switch v.(type) {
+			case map[string]interface{}:
+				response = store.ExpandResponse(v.(map[string]interface{}))
+			default:
+				response = store.NewResponse(nounp, v)
+			}
 
+			return
 		}
 	}
 

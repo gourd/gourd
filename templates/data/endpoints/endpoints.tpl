@@ -60,7 +60,9 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// encode response
-		res = []interface{}{e}
+		res = map[string]interface{}{
+			nounp: []interface{}{e},
+		}
 		return
 
 	}
@@ -107,7 +109,9 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 			return
 		}
 
-		res = el
+		res = map[string]interface{}{
+			nounp: el,
+		}
 		return
 
 	}
@@ -147,9 +151,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 			return
 		}
 
-		res = el
+		res = map[string]interface{}{
+			nounp: el,
+		}
 		return
-
 	}
 
 	endpoints["update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
@@ -188,7 +193,9 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 			return
 		}
 
-		res = []interface{}{e}
+		res = map[string]interface{}{
+			nounp: []interface{}{e},
+		}
 		return
 	}
 
@@ -241,12 +248,13 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 			return
 		}
 
-		res = []interface{}{e}
+		res = map[string]interface{}{
+			nounp: []interface{}{e},
+		}
 		return
-
 	}
 
-	return	
+	return
 }
 
 {{ end }}
