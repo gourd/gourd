@@ -7,8 +7,6 @@ import (
 
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/pat"
-	"github.com/yookoala/restit"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gorilla/pat"
+	"github.com/yookoala/restit"
 	"upper.io/db/sqlite"
 )
 
@@ -280,6 +281,23 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 		t.FailNow()
 	}
 
+	// test paging variables
+	if v, ok := proto.Paging["total"]; !ok {
+		t.Errorf("paging.total not found")
+	} else if want, have := 0, v; want != have {
+		t.Errorf("paging.total expect: %#v, got: %#v", want, have)
+	}
+	if v, ok := proto.Paging["limit"]; !ok {
+		t.Errorf("paging.limit not found")
+	} else if want, have := 0, v; want != have {
+		t.Errorf("paging.limit expect: %#v, got: %#v", want, have)
+	}
+	if v, ok := proto.Paging["offset"]; !ok {
+		t.Errorf("paging.offset not found")
+	} else if want, have := 0, v; want != have {
+		t.Errorf("paging.offset expect: %#v, got: %#v", want, have)
+	}
+
 	// test create
 	t1 := posts.Create(&p1).
 		AddHeader("Authority", token).
@@ -313,6 +331,23 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t2b.Run()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+
+	// test paging variables
+	if v, ok := proto.Paging["total"]; !ok {
+		t.Errorf("paging.total not found")
+	} else if want, have := 1, v; want != have {
+		t.Errorf("paging.total expect: %#v, got: %#v", want, have)
+	}
+	if v, ok := proto.Paging["limit"]; !ok {
+		t.Errorf("paging.limit not found")
+	} else if want, have := 0, v; want != have {
+		t.Errorf("paging.limit expect: %#v, got: %#v", want, have)
+	}
+	if v, ok := proto.Paging["offset"]; !ok {
+		t.Errorf("paging.offset not found")
+	} else if want, have := 0, v; want != have {
+		t.Errorf("paging.offset expect: %#v, got: %#v", want, have)
 	}
 
 	// TODO: test retrieve list with dummy title

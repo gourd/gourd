@@ -142,7 +142,17 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		// allocate memory for variables
 		el := allocEntityList()
 
-		err = s.Search(q).All(el)
+		results := s.Search(q)
+		count, err := results.Count()
+		if err != nil {
+			serr := store.ErrorInternal
+			serr.ServerMsg = fmt.Sprintf("error counting %s: %s",
+				noun, err)
+			err = serr
+			return
+		}
+
+		err = results.All(el)
 		if err != nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
@@ -151,8 +161,12 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 			return
 		}
 
+		// TODO: need to fix overflow error of pager variables
 		res = map[string]interface{}{
 			nounp: el,
+			"paging": store.NewPager().
+				SetTotal(int(count)).
+				SetLimit(int(q.GetLimit()), int(q.GetOffset())),
 		}
 		return
 	}

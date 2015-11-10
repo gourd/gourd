@@ -14,10 +14,11 @@ type ProtoCommon struct {
 
 // ProtoPosts represtnts protocol to communicate Posts
 type ProtoPosts struct {
-	Status int     `json:"status"`
-	Msg    string  `json:"message,omitempty"`
-	Posts  *[]Post `json:"posts,omitempty"`
-	Post   *Post   `json:"post,omitempty"`
+	Status int            `json:"status"`
+	Msg    string         `json:"message,omitempty"`
+	Posts  *[]Post        `json:"posts,omitempty"`
+	Post   *Post          `json:"post,omitempty"`
+	Paging map[string]int `json:"paging,omitempty"`
 }
 
 // Count counts the number of item in the protocol entity list
