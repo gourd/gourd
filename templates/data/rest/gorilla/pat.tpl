@@ -8,6 +8,7 @@
 	"github.com/gorilla/pat"
 	gourdctx "github.com/gourd/kit/context"
 	"github.com/gourd/kit/perm"
+	httpservice "github.com/gourd/kit/service/http"
 	"github.com/gourd/kit/store"
 	"golang.org/x/net/context"
 
@@ -15,22 +16,25 @@
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 {{ end }}
 
 {{ define "code" }}
 
-// {{ .Store }}Rest binds store to pat router
-func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
+// {{ .Store }}AppendDesc(paths httpservice.Paths) append endpoint descriptor
+// with endpoint-specific middleware and DecodeRequestFunc for RESTful HTTP service
+func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 
 	// variables to use later
-	allocEntity := func() *{{ .Type }} { return &{{ .Type }}{} }
-	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
 	getStore := Get{{ .Store }}
 	storeName := "{{ .Store }}"
 
-	// enforce entity property before create
+	// define RESTful descriptor
+	paths := desc.Paths()
+
+	// define default middlewares
 	var prepareCreate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
 		return func (ctx context.Context, request interface{}) (respond interface{}, err error) {
 			// placeholder: anything you want to do with the entity
@@ -39,7 +43,6 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 		}
 	}
 
-	// enforce entity property before update
 	var prepareUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
@@ -54,7 +57,7 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 				return
 			}
 
-			el := allocEntityList()
+			el := &[]{{ .Type }}{}
 			q := rmap["query"].(store.Query)
 
 			// get store
@@ -72,7 +75,7 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 			if err != nil {
 				serr := store.ErrorInternal
 				serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-					noun, err)
+					paths.Noun().Singular(), err)
 				err = serr
 				return
 			}
@@ -88,7 +91,6 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 		}
 	}
 
-	// prepare list
 	var prepareList endpoint.Middleware = func (inner endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 			response, err = inner(ctx, request)
@@ -97,11 +99,11 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 			}
 
 			vmap := response.(map[string]interface{})
-			list := vmap[nounp].(*[]{{ .Type }})
+			list := vmap[paths.Noun().Plural()].(*[]{{ .Type }})
 			if list == nil || *list == nil {
 				*list = make([]{{ .Type }}, 0)
 			}
-			vmap[nounp] = list
+			vmap[paths.Noun().Plural()] = list
 
 			// placeholder: anything you want to do with the entity
 			//              list response
@@ -122,25 +124,10 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 			case map[string]interface{}:
 				response = store.ExpandResponse(v.(map[string]interface{}))
 			default:
-				response = store.NewResponse(nounp, v)
+				response = store.NewResponse(paths.Noun().Plural(), v)
 			}
 
 			return
-		}
-	}
-
-	// generates request permission checker middleware
-	genRequestPermChecker := func (permission string) endpoint.Middleware {
-		return func (inner endpoint.Endpoint) endpoint.Endpoint {
-			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-				m := perm.GetMux(ctx)
-				err = m.Allow(ctx, permission, request)
-				if err != nil {
-					return
-				}
-
-				return inner(ctx, request)
-			}
 		}
 	}
 
@@ -166,6 +153,41 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 			}
 		}
 	}
+
+	// generates request permission checker middleware
+	genRequestPermChecker := func (permission string) endpoint.Middleware {
+		return func (inner endpoint.Endpoint) endpoint.Endpoint {
+			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+				m := perm.GetMux(ctx)
+				err = m.Allow(ctx, permission, request)
+				if err != nil {
+					return
+				}
+				return inner(ctx, request)
+			}
+		}
+	}
+
+	// define middleware chains of all RESTful endpoints
+	desc.SetMiddleware("create", endpoint.Chain(
+		prepareProtocol,
+		prepareCreate,
+		genRequestPermChecker("create "+paths.Noun().Singular())))
+	desc.SetMiddleware("retrieve", endpoint.Chain(
+		prepareProtocol,
+		prepareList,
+		genResponsePermChecker("retrieve "+paths.Noun().Singular())))
+	desc.SetMiddleware("update", endpoint.Chain(
+		prepareProtocol,
+		prepareUpdate,
+		genRequestPermChecker("update "+paths.Noun().Singular())))
+	desc.SetMiddleware("list", endpoint.Chain(
+		prepareProtocol,
+		prepareList,
+		genResponsePermChecker("list "+paths.Noun().Singular())))
+	desc.SetMiddleware("delete", endpoint.Chain(
+		prepareProtocol,
+		genRequestPermChecker("delete "+paths.Noun().Singular())))
 
 	//
 	// ====
@@ -223,7 +245,7 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 	// into allocated memory structure
 	var decodeJSONReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
 		// allocate entity
-		request = allocEntity()
+		request = &{{ .Type }}{}
 
 		// decode request
 		dec := json.NewDecoder(r.Body)
@@ -251,110 +273,112 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 		return
 	}
 
-	// encodeJSONResp encodes given response into JSON
-	encodeJSONResp := func(w http.ResponseWriter, response interface{}) (err error) {
-		enc := json.NewEncoder(w)
-		err = enc.Encode(response)
-		return
+	desc.SetDecodeFunc("create", decodeJSONReq)
+	desc.SetDecodeFunc("retrieve", decodeIDReq)
+	desc.SetDecodeFunc("list", decodeListReq)
+	desc.SetDecodeFunc("update", decodeUpdate)
+	desc.SetDecodeFunc("delete", decodeIDReq)
+
+	return desc
+}
+
+// {{ .Store }}Routes defines the router specific routes
+// to be use in the {{ .Store }} Paths
+func {{ .Store }}Routes(name string, noun httpservice.Noun) (string, string) {
+	// define router specific paths for different action type
+	// with the method of that action endpoint
+	switch name {
+		case "update":
+			return path.Join(noun.Singular(), "{id}"), "PUT"
+		case "retrieve":
+			return path.Join(noun.Singular(), "{id}"), "GET"
+		case "delete":
+			return path.Join(noun.Singular(), "{id}"), "DELETE"
+		case "list":
+			return noun.Plural(), "GET"
+		case "create":
+			return noun.Plural(), "POST"
 	}
+	return "", ""
+}
 
-	// JSONErrorEncoder expands given error to StoreError then encode to JSON
-	JSONErrorEncoder := func(w http.ResponseWriter, err error) {
+// {{ .Store }}Rest binds store to pat router
+func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 
-		// quick fix for gokit bad request wrapping problem
-		switch err.(type) {
-		case httptransport.BadRequestError:
-			err = err.(httptransport.BadRequestError).Err
+	log.Printf("REST path: %s/%s", base, noun)
+
+	// handle individual route with pat (router specific)
+	patRouterFunc := func(r *pat.Router) (func(string, httpservice.Paths, http.Handler) error) {
+		return func(name string, paths httpservice.Paths, h http.Handler) error {
+			r.Add(paths.Method(name), paths.Path(name), h)
+			return nil
 		}
-
-		enc := json.NewEncoder(w)
-		err = enc.Encode(store.ExpandError(err))
 	}
 
-	//
-	// -----
-	//
-
-	// define paths
-	nounPath := base + "/" + noun + "/{id}"
-	pluralNounPath := base + "/" + nounp
-	log.Printf("REST path: %s", pluralNounPath)
-
+	// generate CRUD endpoints
 	endpoints := {{ .Store }}Endpoints(noun, nounp)
 
-	// Create
-	postHandler := httptransport.NewServer(
-		gourdctx.NewEmpty(),
-		endpoint.Chain(
-			gourdctx.ClearGorilla,
-			perm.UseMux(p),
-			prepareProtocol,
-			prepareCreate,
-			genRequestPermChecker("create "+noun))(endpoints["create"]),
-		decodeJSONReq,
-		encodeJSONResp,
-		httptransport.ServerBefore(gourdctx.UseGorilla),
-		httptransport.ServerErrorEncoder(JSONErrorEncoder))
-	r.Add("POST", pluralNounPath, postHandler)
+	// generate desc (Middleware, DecodeRequestFunc)
+	// for the CRUD endpoints
+	paths := httpservice.NewPaths(base,
+		httpservice.NewNoun(noun, nounp),
+		{{ .Store }}Routes)
+	desc := httpservice.NewDesc(paths)
+	desc = {{ .Store }}AppendDesc(desc)
 
-	// Retrieve single
-	getHandler := httptransport.NewServer(
-		gourdctx.NewEmpty(),
-		endpoint.Chain(
-			gourdctx.ClearGorilla,
-			perm.UseMux(p),
-			prepareProtocol,
-			prepareList,
-			genResponsePermChecker("retrieve "+noun))(endpoints["retrieve"]),
-		decodeIDReq,
-		encodeJSONResp,
-		httptransport.ServerBefore(gourdctx.UseGorilla),
-		httptransport.ServerErrorEncoder(JSONErrorEncoder))
-	r.Add("GET", nounPath, getHandler)
+	mware := endpoint.Chain(
+		gourdctx.ClearGorilla,
+		perm.UseMux(p))
 
-	// Retrieve list
-	listHandler := httptransport.NewServer(
-		gourdctx.NewEmpty(),
-		endpoint.Chain(
-			gourdctx.ClearGorilla,
-			perm.UseMux(p),
-			prepareProtocol,
-			prepareList,
-			genResponsePermChecker("list "+noun))(endpoints["list"]),
-		decodeListReq,
-		encodeJSONResp,
-		httptransport.ServerBefore(gourdctx.UseGorilla),
-		httptransport.ServerErrorEncoder(JSONErrorEncoder))
-	r.Add("GET", pluralNounPath, listHandler)
+	func(rf func(string, httpservice.Paths, http.Handler) error, mware endpoint.Middleware, desc httpservice.Desc) {
 
-	// Update single
-	putHandler := httptransport.NewServer(
-		gourdctx.NewEmpty(),
-		endpoint.Chain(
-			gourdctx.ClearGorilla,
-			perm.UseMux(p),
-			prepareProtocol,
-			prepareUpdate,
-			genRequestPermChecker("update "+noun))(endpoints["update"]),
-		decodeUpdate,
-		encodeJSONResp,
-		httptransport.ServerBefore(gourdctx.UseGorilla),
-		httptransport.ServerErrorEncoder(JSONErrorEncoder))
-	r.Add("PUT", nounPath, putHandler)
+		// encodeJSONResp encodes given response into JSON
+		encodeJSONResp := func(w http.ResponseWriter, response interface{}) (err error) {
+			enc := json.NewEncoder(w)
+			err = enc.Encode(response)
+			return
+		}
 
-	// Delete single
-	deleteHandler := httptransport.NewServer(
-		gourdctx.NewEmpty(),
-		endpoint.Chain(
-			gourdctx.ClearGorilla,
-			perm.UseMux(p),
-			prepareProtocol,
-			genRequestPermChecker("delete "+noun))(endpoints["delete"]),
-		decodeIDReq,
-		encodeJSONResp,
-		httptransport.ServerBefore(gourdctx.UseGorilla),
-		httptransport.ServerErrorEncoder(JSONErrorEncoder))
-	r.Add("DELETE", nounPath, deleteHandler)
+		// JSONErrorEncoder expands given error to StoreError then encode to JSON
+		JSONErrorEncoder := func(w http.ResponseWriter, err error) {
+
+			// quick fix for gokit bad request wrapping problem
+			switch err.(type) {
+			case httptransport.BadRequestError:
+				err = err.(httptransport.BadRequestError).Err
+			}
+
+			enc := json.NewEncoder(w)
+			err = enc.Encode(store.ExpandError(err))
+		}
+
+		// route all endpoints
+		for name := range endpoints {
+
+			// pre-wrap endpoint with endpoint specific middleware
+			ep := desc.GetMiddleware(name)(endpoints[name])
+
+			// pre-wrap endpoint with general middleware
+			ep = endpoint.Chain(
+				gourdctx.ClearGorilla,
+				perm.UseMux(p))(ep)
+
+			// generate http handler
+			h := httptransport.NewServer(
+				gourdctx.NewEmpty(),
+				ep,
+				desc.GetDecodeFunc(name),
+				encodeJSONResp,
+				httptransport.ServerBefore(gourdctx.UseGorilla),
+				httptransport.ServerErrorEncoder(JSONErrorEncoder))
+
+			// route the handler according to path and method
+			if err := rf(name, desc.Paths(), h); err != nil {
+				panic(err)
+			}
+		}
+
+	}(patRouterFunc(r), mware, desc)
 
 }
 
