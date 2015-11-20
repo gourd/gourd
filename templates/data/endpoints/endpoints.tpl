@@ -18,7 +18,6 @@
 func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoint.Endpoint) {
 
 	// variables to use later
-	allocEntity := func() *{{ .Type }} { return &{{ .Type }}{} }
 	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
 	getStore := Get{{ .Store.Name }}
 	storeName := "{{ .Store.Name }}"
@@ -61,7 +60,7 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 		// encode response
 		res = map[string]interface{}{
-			nounp: []interface{}{e},
+			nounp: &[]{{ .Type }}{*e.(*{{ .Type }})},
 		}
 		return
 
@@ -208,7 +207,7 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		res = map[string]interface{}{
-			nounp: []interface{}{e},
+			nounp: &[]{{ .Type }}{*e.(*{{ .Type }})},
 		}
 		return
 	}
@@ -216,7 +215,6 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 	endpoints["delete"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
 		// allocate memory for variables
-		e := allocEntity()
 		el := allocEntityList()
 
 		// store query of id
@@ -263,7 +261,7 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		res = map[string]interface{}{
-			nounp: []interface{}{e},
+			nounp: el,
 		}
 		return
 	}
