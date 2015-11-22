@@ -16,23 +16,18 @@
 	"fmt"
 	"log"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 {{ end }}
 
 {{ define "code" }}
 
-// {{ .Store }}AppendDesc(paths httpservice.Paths) append endpoint descriptor
-// with endpoint-specific middleware and DecodeRequestFunc for RESTful HTTP service
-func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
+func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint.Endpoint) (handlers map[string]*httpservice.Service) {
 
 	// variables to use later
 	getStore := Get{{ .Store }}
 	storeName := "{{ .Store }}"
-
-	// define RESTful descriptor
-	paths := desc.Paths()
+	noun := paths.Noun()
 
 	// define default middlewares
 	var prepareCreate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
@@ -75,7 +70,7 @@ func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 			if err != nil {
 				serr := store.ErrorInternal
 				serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-					paths.Noun().Singular(), err)
+					noun.Singular(), err)
 				err = serr
 				return
 			}
@@ -99,11 +94,11 @@ func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 			}
 
 			vmap := response.(map[string]interface{})
-			list := vmap[paths.Noun().Plural()].(*[]{{ .Type }})
+			list := vmap[noun.Plural()].(*[]{{ .Type }})
 			if list == nil || *list == nil {
 				*list = make([]{{ .Type }}, 0)
 			}
-			vmap[paths.Noun().Plural()] = list
+			vmap[noun.Plural()] = list
 
 			// placeholder: anything you want to do with the entity
 			//              list response
@@ -124,7 +119,7 @@ func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 			case map[string]interface{}:
 				response = store.ExpandResponse(v.(map[string]interface{}))
 			default:
-				response = store.NewResponse(paths.Noun().Plural(), v)
+				response = store.NewResponse(noun.Plural(), v)
 			}
 
 			return
@@ -168,33 +163,12 @@ func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 		}
 	}
 
-	// define middleware chains of all RESTful endpoints
-	desc.SetMiddleware("create", endpoint.Chain(
-		prepareProtocol,
-		prepareCreate,
-		genRequestPermChecker("create "+paths.Noun().Singular())))
-	desc.SetMiddleware("retrieve", endpoint.Chain(
-		prepareProtocol,
-		prepareList,
-		genResponsePermChecker("retrieve "+paths.Noun().Singular())))
-	desc.SetMiddleware("update", endpoint.Chain(
-		prepareProtocol,
-		prepareUpdate,
-		genRequestPermChecker("update "+paths.Noun().Singular())))
-	desc.SetMiddleware("list", endpoint.Chain(
-		prepareProtocol,
-		prepareList,
-		genResponsePermChecker("list "+paths.Noun().Singular())))
-	desc.SetMiddleware("delete", endpoint.Chain(
-		prepareProtocol,
-		genRequestPermChecker("delete "+paths.Noun().Singular())))
-
 	//
 	// ====
 	//
 
 	// decodeIDReq generically decoded :id field
-	// (works with pat based URL routing)
+	// (works with pat based URL routing, router specific)
 	var decodeIDReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
 		id := r.URL.Query().Get(":id") // will change
 		cond := store.NewConds().Add("id", id)
@@ -273,33 +247,60 @@ func {{ .Store }}AppendDesc(desc httpservice.Desc) httpservice.Desc {
 		return
 	}
 
-	desc.SetDecodeFunc("create", decodeJSONReq)
-	desc.SetDecodeFunc("retrieve", decodeIDReq)
-	desc.SetDecodeFunc("list", decodeListReq)
-	desc.SetDecodeFunc("update", decodeUpdate)
-	desc.SetDecodeFunc("delete", decodeIDReq)
+	// define middleware chains of all RESTful endpoints
+	handlers = make(map[string]*httpservice.Service)
 
-	return desc
-}
-
-// {{ .Store }}Routes defines the router specific routes
-// to be use in the {{ .Store }} Paths
-func {{ .Store }}Routes(name string, noun httpservice.Noun) (string, string) {
-	// define router specific paths for different action type
-	// with the method of that action endpoint
-	switch name {
-		case "update":
-			return path.Join(noun.Singular(), "{id}"), "PUT"
-		case "retrieve":
-			return path.Join(noun.Singular(), "{id}"), "GET"
-		case "delete":
-			return path.Join(noun.Singular(), "{id}"), "DELETE"
-		case "list":
-			return noun.Plural(), "GET"
-		case "create":
-			return noun.Plural(), "POST"
+	log.Printf("path: %#v, create", paths.Plural())
+	handlers["create"] = httpservice.NewJSONService(
+		paths.Plural(), endpoints["create"])
+	handlers["create"].Methods = []string{"POST"}
+	handlers["create"].DecodeFunc = decodeJSONReq
+	handlers["create"].Middlewares.Inner = []endpoint.Middleware{
+		prepareProtocol,
+		prepareCreate,
+		genRequestPermChecker("create "+noun.Singular()),
 	}
-	return "", ""
+
+	handlers["retrieve"] = httpservice.NewJSONService(
+		paths.Singular(), endpoints["retrieve"])
+	handlers["retrieve"].Methods = []string{"GET"}
+	handlers["retrieve"].DecodeFunc = decodeIDReq
+	handlers["retrieve"].Middlewares.Inner = []endpoint.Middleware{
+		prepareProtocol,
+		prepareList,
+		genResponsePermChecker("retrieve "+noun.Singular()),
+	}
+
+	handlers["update"] = httpservice.NewJSONService(
+		paths.Singular(), endpoints["update"])
+	handlers["update"].Methods = []string{"PUT"}
+	handlers["update"].DecodeFunc = decodeUpdate
+	handlers["update"].Middlewares.Inner = []endpoint.Middleware{
+		prepareProtocol,
+		prepareUpdate,
+		genRequestPermChecker("update "+noun.Singular()),
+	}
+
+	handlers["list"] = httpservice.NewJSONService(
+		paths.Plural(), endpoints["list"])
+	handlers["list"].Methods = []string{"GET"}
+	handlers["list"].DecodeFunc = decodeListReq
+	handlers["list"].Middlewares.Inner = []endpoint.Middleware{
+		prepareProtocol,
+		prepareList,
+		genResponsePermChecker("list "+noun.Singular()),
+	}
+
+	handlers["delete"] = httpservice.NewJSONService(
+		paths.Singular(), endpoints["delete"])
+	handlers["delete"].Methods = []string{"DELETE"}
+	handlers["delete"].DecodeFunc = decodeListReq
+	handlers["delete"].Middlewares.Inner = []endpoint.Middleware{
+		prepareProtocol,
+		genRequestPermChecker("delete "+noun.Singular()),
+	}
+
+	return
 }
 
 // {{ .Store }}Rest binds store to pat router
@@ -308,9 +309,11 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 	log.Printf("REST path: %s/%s", base, noun)
 
 	// handle individual route with pat (router specific)
-	patRouterFunc := func(r *pat.Router) (func(string, httpservice.Paths, http.Handler) error) {
-		return func(name string, paths httpservice.Paths, h http.Handler) error {
-			r.Add(paths.Method(name), paths.Path(name), h)
+	patRouterFunc := func(r *pat.Router) (httpservice.RouterFunc) {
+		return func(path string, methods []string, h http.Handler) error {
+			for i := range methods {
+				r.Add(methods[i], path, h)
+			}
 			return nil
 		}
 	}
@@ -318,68 +321,33 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 	// generate CRUD endpoints
 	endpoints := {{ .Store }}Endpoints(noun, nounp)
 
-	// generate desc (Middleware, DecodeRequestFunc)
-	// for the CRUD endpoints
+	// generate path description for the CRUD endpoints
 	paths := httpservice.NewPaths(base,
-		httpservice.NewNoun(noun, nounp),
-		{{ .Store }}Routes)
-	desc := httpservice.NewDesc(paths)
-	desc = {{ .Store }}AppendDesc(desc)
+		httpservice.NewNoun(noun, nounp), "{id}")
 
-	mware := endpoint.Chain(
+	// common middleware
+	common := endpoint.Chain(
 		gourdctx.ClearGorilla,
 		perm.UseMux(p))
 
-	func(rf func(string, httpservice.Paths, http.Handler) error, mware endpoint.Middleware, desc httpservice.Desc) {
+	// generate service description (Middleware, DecodeRequestFunc)
+	services := {{ .Store }}Services(paths, endpoints)
 
-		// encodeJSONResp encodes given response into JSON
-		encodeJSONResp := func(w http.ResponseWriter, response interface{}) (err error) {
-			enc := json.NewEncoder(w)
-			err = enc.Encode(response)
-			return
-		}
-
-		// JSONErrorEncoder expands given error to StoreError then encode to JSON
-		JSONErrorEncoder := func(w http.ResponseWriter, err error) {
-
-			// quick fix for gokit bad request wrapping problem
-			switch err.(type) {
-			case httptransport.BadRequestError:
-				err = err.(httptransport.BadRequestError).Err
-			}
-
-			enc := json.NewEncoder(w)
-			err = enc.Encode(store.ExpandError(err))
-		}
+	func(rf httpservice.RouterFunc, common endpoint.Middleware, services map[string]*httpservice.Service) {
 
 		// route all endpoints
-		for name := range endpoints {
+		for name := range services {
+			// pre-wrap endpoint with common middleware
+			services[name].Middlewares.Outer =
+				append(services[name].Middlewares.Outer, common)
 
-			// pre-wrap endpoint with endpoint specific middleware
-			ep := desc.GetMiddleware(name)(endpoints[name])
-
-			// pre-wrap endpoint with general middleware
-			ep = endpoint.Chain(
-				gourdctx.ClearGorilla,
-				perm.UseMux(p))(ep)
-
-			// generate http handler
-			h := httptransport.NewServer(
-				gourdctx.NewEmpty(),
-				ep,
-				desc.GetDecodeFunc(name),
-				encodeJSONResp,
-				httptransport.ServerBefore(gourdctx.UseGorilla),
-				httptransport.ServerErrorEncoder(JSONErrorEncoder))
-
-			// route the handler according to path and method
-			if err := rf(name, desc.Paths(), h); err != nil {
+			// route, panic if error
+			if err := services[name].Route(rf); err != nil {
 				panic(err)
 			}
 		}
 
-	}(patRouterFunc(r), mware, desc)
-
+	}(patRouterFunc(r), common, services)
 }
 
 {{ end }}
