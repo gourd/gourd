@@ -110,6 +110,9 @@ func (s *{{ .Type.Name }}Store) Search(
 			res = coll.Find(conds)
 		}
 
+		// add sorting information, if any
+		res = res.Sort(upperio.Sort(q)...)
+
 		// handle paging
 		if q.GetOffset() != 0 {
 			res = res.Skip(uint(q.GetOffset()))
@@ -229,7 +232,7 @@ func (s *{{ .Type.Name }}Store) Coll() (coll db.Collection, err error) {
 			err.Error())
 		err = store.ErrorInternal
 	}
-	return 
+	return
 }
 
 // Close the database session that {{ .Type.Name }} is using
