@@ -6,7 +6,6 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
-	gourdctx "github.com/gourd/kit/context"
 	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/perm"
 	"golang.org/x/net/context"
@@ -30,9 +29,9 @@ func MainHandler() http.Handler {
 	requireAccess := func(ctx context.Context, perm string, info ...interface{}) (err error) {
 		// get access from context HTTP Request
 		log.Printf("Requesting permission to %s", perm)
-		a, err := oauth2.GetAccess(gourdctx.HTTPRequest(ctx))
-		if err == nil {
-			log.Printf("Access: %#v", a)
+
+		if access := oauth2.GetAccess(ctx); access != nil {
+			log.Printf("Access: %#v", access)
 		}
 		return
 	}
