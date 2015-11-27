@@ -1,15 +1,15 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	gourdctx "github.com/gourd/kit/context"
 	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/perm"
-	"github.com/gourd/kit/store"
 	"golang.org/x/net/context"
-	"log"
-	"net/http"
 )
 
 // MainHandler
@@ -28,18 +28,9 @@ func MainHandler() http.Handler {
 	// NOTE: these are independent to router
 	p := perm.NewMux()
 	requireAccess := func(ctx context.Context, perm string, info ...interface{}) (err error) {
-
-		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
-			serr := store.ErrorInternal
-			serr.ServerMsg = "missing request in context"
-			err = serr
-			return
-		}
-
+		// get access from context HTTP Request
 		log.Printf("Requesting permission to %s", perm)
-		a, err := oauth2.GetAccess(r)
+		a, err := oauth2.GetAccess(gourdctx.HTTPRequest(ctx))
 		if err == nil {
 			log.Printf("Access: %#v", a)
 		}

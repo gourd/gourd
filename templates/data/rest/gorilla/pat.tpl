@@ -44,8 +44,8 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			rmap := request.(map[string]interface{})
 
 			// get context information
-			r, ok := gourdctx.HTTPRequest(ctx)
-			if !ok {
+			r := gourdctx.HTTPRequest(ctx)
+			if r == nil {
 				serr := store.ErrorInternal
 				serr.ServerMsg = "missing request in context"
 				err = serr

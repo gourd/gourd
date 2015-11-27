@@ -29,8 +29,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 	endpoints["create"] = func(ctx context.Context, e interface{}) (res interface{}, err error) {
 
 		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
+		r := gourdctx.HTTPRequest(ctx)
+		if r == nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = "missing request in context"
 			err = serr
@@ -71,8 +71,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		q := request.(store.Query)
 
 		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
+		r := gourdctx.HTTPRequest(ctx)
+		if r == nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = "missing request in context"
 			err = serr
@@ -120,8 +120,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		q := request.(store.Query)
 
 		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
+		r := gourdctx.HTTPRequest(ctx)
+		if r == nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = "missing request in context"
 			err = serr
@@ -178,8 +178,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		cond := q.GetConds()
 
 		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
+		r := gourdctx.HTTPRequest(ctx)
+		if r == nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = "missing request in context"
 			err = serr
@@ -222,8 +222,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		cond := q.GetConds()
 
 		// get context information
-		r, ok := gourdctx.HTTPRequest(ctx)
-		if !ok {
+		r := gourdctx.HTTPRequest(ctx)
+		if r == nil {
 			serr := store.ErrorInternal
 			serr.ServerMsg = "missing request in context"
 			err = serr
