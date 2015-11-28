@@ -127,7 +127,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	}
 
 	// generates response permission checker middleware
-	genResponsePermChecker := func (permission string) endpoint.Middleware {
+	checkPermBefore := func (permission string) endpoint.Middleware {
 		return func (inner endpoint.Endpoint) endpoint.Endpoint {
 			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
@@ -150,7 +150,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	}
 
 	// generates request permission checker middleware
-	genRequestPermChecker := func (permission string) endpoint.Middleware {
+	checkPermAfter := func (permission string) endpoint.Middleware {
 		return func (inner endpoint.Endpoint) endpoint.Endpoint {
 			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 				m := perm.GetMux(ctx)
@@ -255,50 +255,48 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		paths.Plural(), endpoints["create"])
 	handlers["create"].Methods = []string{"POST"}
 	handlers["create"].DecodeFunc = decodeJSONReq
-	handlers["create"].Middlewares.Inner = []endpoint.Middleware{
-		prepareProtocol,
-		prepareCreate,
-		genRequestPermChecker("create "+noun.Singular()),
-	}
+	handlers["create"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["create"].Middlewares.Add(httpservice.MWPrepare, prepareCreate)
+	handlers["create"].Middlewares.Add(httpservice.MWInner,
+		checkPermBefore("create "+noun.Singular()))
 
 	handlers["retrieve"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["retrieve"])
 	handlers["retrieve"].Methods = []string{"GET"}
 	handlers["retrieve"].DecodeFunc = decodeIDReq
-	handlers["retrieve"].Middlewares.Inner = []endpoint.Middleware{
-		prepareProtocol,
-		prepareList,
-		genResponsePermChecker("retrieve "+noun.Singular()),
-	}
+	handlers["retrieve"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["retrieve"].Middlewares.Add(httpservice.MWPrepare, prepareList)
+	handlers["retrieve"].Middlewares.Add(httpservice.MWInner,
+		checkPermAfter("retrieve "+noun.Singular()))
+
 
 	handlers["update"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["update"])
 	handlers["update"].Methods = []string{"PUT"}
 	handlers["update"].DecodeFunc = decodeUpdate
-	handlers["update"].Middlewares.Inner = []endpoint.Middleware{
-		prepareProtocol,
-		prepareUpdate,
-		genRequestPermChecker("update "+noun.Singular()),
-	}
+	handlers["update"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["update"].Middlewares.Add(httpservice.MWPrepare, prepareUpdate)
+	handlers["update"].Middlewares.Add(httpservice.MWInner,
+		checkPermBefore("update "+noun.Singular()))
+
 
 	handlers["list"] = httpservice.NewJSONService(
 		paths.Plural(), endpoints["list"])
 	handlers["list"].Methods = []string{"GET"}
 	handlers["list"].DecodeFunc = decodeListReq
-	handlers["list"].Middlewares.Inner = []endpoint.Middleware{
-		prepareProtocol,
-		prepareList,
-		genResponsePermChecker("list "+noun.Singular()),
-	}
+	handlers["list"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["list"].Middlewares.Add(httpservice.MWPrepare, prepareList)
+	handlers["list"].Middlewares.Add(httpservice.MWInner,
+		checkPermAfter("list "+noun.Singular()))
+
 
 	handlers["delete"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["delete"])
 	handlers["delete"].Methods = []string{"DELETE"}
 	handlers["delete"].DecodeFunc = decodeListReq
-	handlers["delete"].Middlewares.Inner = []endpoint.Middleware{
-		prepareProtocol,
-		genRequestPermChecker("delete "+noun.Singular()),
-	}
+	handlers["delete"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["delete"].Middlewares.Add(httpservice.MWInner,
+		checkPermBefore("delete "+noun.Singular()))
 
 	return
 }
@@ -338,8 +336,7 @@ func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
 		// route all endpoints
 		for name := range services {
 			// pre-wrap endpoint with common middleware
-			services[name].Middlewares.Outer =
-				append(services[name].Middlewares.Outer, common)
+			services[name].Middlewares.Add(httpservice.MWOuter, common)
 
 			// route, panic if error
 			if err := services[name].Route(rf); err != nil {
