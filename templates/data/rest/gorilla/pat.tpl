@@ -5,7 +5,6 @@
 {{ define "imports" }}
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"github.com/gorilla/pat"
 	gourdctx "github.com/gourd/kit/context"
 	"github.com/gourd/kit/perm"
 	httpservice "github.com/gourd/kit/service/http"
@@ -22,7 +21,7 @@
 
 {{ define "code" }}
 
-func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint.Endpoint) (handlers map[string]*httpservice.Service) {
+func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint.Endpoint) (handlers httpservice.Services) {
 
 	// variables to use later
 	getStore := Get{{ .Store }}
@@ -302,49 +301,23 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 }
 
 // {{ .Store }}Rest binds store to pat router
-func {{ .Store }}Rest(r *pat.Router, p perm.Mux, base, noun, nounp string) {
+func {{ .Store }}Rest(rf httpservice.RouterFunc, paths httpservice.Paths, patches ...httpservice.ServicesPatch) {
 
-	log.Printf("REST path: %s/%s", base, noun)
-
-	// handle individual route with pat (router specific)
-	patRouterFunc := func(r *pat.Router) (httpservice.RouterFunc) {
-		return func(path string, methods []string, h http.Handler) error {
-			for i := range methods {
-				r.Add(methods[i], path, h)
-			}
-			return nil
-		}
-	}
+	log.Printf("REST path: %s", paths.Plural())
 
 	// generate CRUD endpoints
-	endpoints := {{ .Store }}Endpoints(noun, nounp)
-
-	// generate path description for the CRUD endpoints
-	paths := httpservice.NewPaths(base,
-		httpservice.NewNoun(noun, nounp), "{id}")
-
-	// common middleware
-	common := endpoint.Chain(
-		gourdctx.ClearGorilla,
-		perm.UseMux(p))
+	endpoints := {{ .Store }}Endpoints(
+		paths.Noun().Singular(), paths.Noun().Plural())
 
 	// generate service description (Middleware, DecodeRequestFunc)
 	services := {{ .Store }}Services(paths, endpoints)
+	services.Patch(patches...)
 
-	func(rf httpservice.RouterFunc, common endpoint.Middleware, services map[string]*httpservice.Service) {
+	// route to all services
+	if err := services.Route(rf); err != nil {
+		panic(err)
+	}
 
-		// route all endpoints
-		for name := range services {
-			// pre-wrap endpoint with common middleware
-			services[name].Middlewares.Add(httpservice.MWOuter, common)
-
-			// route, panic if error
-			if err := services[name].Route(rf); err != nil {
-				panic(err)
-			}
-		}
-
-	}(patRouterFunc(r), common, services)
 }
 
 {{ end }}
