@@ -5,6 +5,7 @@ import (
 	"github.com/gourd/kit/store/upperio"
 
 	"math/rand"
+	"net/http"
 	"testing"
 	"upper.io/db/sqlite"
 )
@@ -30,11 +31,12 @@ func randStr(n int) string {
 
 func TestUserAStore(t *testing.T) {
 
+	r := &http.Request{}
 	usp, err := store.Providers.Get("UserA")
 	if err != nil {
 		t.Logf("Unable to obtain store provider: %s", err.Error())
 	}
-	us, err := usp.Store(nil)
+	us, err := usp.Store(r)
 	if err != nil {
 		t.Logf("Unable to obtain store: %s", err.Error())
 	}
@@ -64,11 +66,12 @@ func TestUserAStore(t *testing.T) {
 
 func TestUserBStore(t *testing.T) {
 
+	r := &http.Request{}
 	usp, err := store.Providers.Get("UserB")
 	if err != nil {
 		t.Logf("Unable to obtain store provider: %s", err.Error())
 	}
-	us, err := usp.Store(nil)
+	us, err := usp.Store(r)
 	if err != nil {
 		t.Logf("Unable to obtain store: %s", err.Error())
 	}
