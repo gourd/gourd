@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/codegangsta/cli"
 	"os"
 	"time"
+
+	"github.com/codegangsta/cli"
 )
 
 var app *cli.App
 var now time.Time
 
 // VERSION stores the version string of this library
-const VERSION = "0.2dev"
+const VERSION = "0.3dev"
 
 // TIMEFORMAT stores the time format to be used in
 // timestamp generation

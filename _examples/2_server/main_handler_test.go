@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/store"
-	"github.com/gourd/kit/store/upperio"
+	"golang.org/x/net/context"
 
 	"encoding/json"
 	"fmt"
@@ -18,18 +18,11 @@ import (
 
 	"github.com/gorilla/pat"
 	"github.com/yookoala/restit"
-	"upper.io/db/sqlite"
 )
 
 // could be used repeatedly for different unit test
 func mainTestServer() (ts *httptest.Server) {
-
-	// define db
-	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
-		Database: `./data/sqlite3.db`,
-	})
-
-	ts = httptest.NewServer(MainHandler())
+	ts = httptest.NewServer(NewHandler(NewFactory(`./data/sqlite3.db`)))
 	return
 }
 
@@ -99,7 +92,7 @@ func testOAuth2ClientApp(path string) http.Handler {
 }
 
 // test oauth2
-func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
+func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token string) {
 
 	// create test client server
 	tcsbase := "/example_app/"
@@ -112,10 +105,9 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 
 	// create dummy oauth client and user
 	c, u := func(tcs *httptest.Server, password, redirect string) (*oauth2.Client, *oauth2.User) {
-		r := &http.Request{}
 
 		// generate dummy user
-		us, err := store.Providers.Store(r, "User")
+		us, err := store.Get(ctx, oauth2.KeyUser)
 		if err != nil {
 			panic(err)
 		}
@@ -126,7 +118,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		}
 
 		// get related dummy client
-		cs, err := store.Providers.Store(r, "Client")
+		cs, err := store.Get(ctx, oauth2.KeyClient)
 		if err != nil {
 			panic(err)
 		}
@@ -395,10 +387,13 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 
 // testing the gourd generated server
 func TestMainPosts(t *testing.T) {
-	ts := mainTestServer()
+	factory := NewFactory(`./data/sqlite3.db`)
+	ts := httptest.NewServer(NewHandler(factory))
 	defer ts.Close()
 
-	token := testOAuth2(t, ts)
+	ctx := store.WithFactory(context.Background(), factory)
+
+	token := testOAuth2(t, ctx, ts)
 	if token == "" {
 		t.Error("Failed to obtain security token")
 		t.FailNow()

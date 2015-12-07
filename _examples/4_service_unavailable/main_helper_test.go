@@ -3,11 +3,10 @@ package main
 import (
 	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/store"
+	"golang.org/x/net/context"
 
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/pat"
-	"github.com/yookoala/restit"
 	"log"
 	"math/rand"
 	"net/http"
@@ -16,11 +15,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gorilla/pat"
+	"github.com/yookoala/restit"
 )
 
 // could be used repeatedly for different unit test
 func gourdTestServer() (ts *httptest.Server) {
-	s := gourdServer()
+	s := NewHandler(NewFactory())
 	ts = httptest.NewServer(s)
 	return
 }
@@ -91,7 +93,7 @@ func testOAuth2ClientApp(path string) http.Handler {
 }
 
 // test oauth2
-func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
+func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token string) {
 
 	// create test client server
 	tcsbase := "/example_app/"
@@ -104,10 +106,9 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 
 	// create dummy oauth client and user
 	c, u := func(tcs *httptest.Server, password, redirect string) (*oauth2.Client, *oauth2.User) {
-		r := &http.Request{}
 
 		// generate dummy user
-		us, err := store.Providers.Store(r, "User")
+		us, err := store.Get(ctx, oauth2.KeyUser)
 		if err != nil {
 			panic(err)
 		}
@@ -118,7 +119,7 @@ func testOAuth2(t *testing.T, ts *httptest.Server) (token string) {
 		}
 
 		// get related dummy client
-		cs, err := store.Providers.Store(r, "Client")
+		cs, err := store.Get(ctx, oauth2.KeyClient)
 		if err != nil {
 			panic(err)
 		}

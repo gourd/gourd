@@ -24,9 +24,22 @@
 func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint.Endpoint) (handlers httpservice.Services) {
 
 	// variables to use later
-	getStore := Get{{ .Store }}
-	storeName := "{{ .Store }}"
 	noun := paths.Noun()
+	storeKey := "{{ .Store }}"
+	getStore := func(ctx context.Context) (s *{{ .Store }}, err error) {
+		raw, err := store.Get(ctx, storeKey)
+		if err != nil {
+			return
+		}
+
+		s, ok := raw.(*{{ .Store }})
+		if !ok {
+			err = fmt.Errorf("store.Get(\"{{ .Store }}\") does not return *{{ .Store }}")
+			return
+		}
+		return
+	}
+
 
 	// define default middlewares
 	var prepareCreate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
@@ -55,10 +68,10 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			q := rmap["query"].(store.Query)
 
 			// get store
-			s, err := getStore(r)
+			s, err := getStore(ctx)
 			if err != nil {
 				serr := store.ErrorInternal
-				serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+				serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 				err = serr
 				return
 			}

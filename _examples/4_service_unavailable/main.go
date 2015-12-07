@@ -1,5 +1,11 @@
 package main
 
+import (
+	"log"
+	"net/http"
+	"time"
+)
+
 //go:generate gourd gen main $GOFILE
 
 // main
@@ -12,8 +18,12 @@ package main
 //gourd:rest /api/comments Comment
 //
 func main() {
-	// use the gourd generated main (gourdMain)
-	// alternatively, user may copy the content of gourdMain
-	// here then modify
-	gourdMain()
+	s := &http.Server{
+		Addr:           ":8080",
+		Handler:        NewHandler(NewFactory()),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	log.Fatal(s.ListenAndServe())
 }

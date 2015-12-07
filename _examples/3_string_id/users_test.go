@@ -1,22 +1,36 @@
 package example
 
 import (
+	"github.com/gourd/kit/oauth2"
 	"github.com/gourd/kit/store"
 	"github.com/gourd/kit/store/upperio"
+	"golang.org/x/net/context"
 
 	"math/rand"
-	"net/http"
 	"testing"
+
 	"upper.io/db/sqlite"
 )
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+var ctx context.Context
+
 func init() {
+
 	// define db
-	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
+	factory := store.NewFactory()
+	factory.SetSource(store.DefaultSrc, upperio.Source(sqlite.Adapter, sqlite.ConnectionURL{
 		Database: `./data/sqlite3.db`,
-	})
+	}))
+	factory.Set("UserA", store.DefaultSrc, UserAStoreProvider)
+	factory.Set("UserB", store.DefaultSrc, UserBStoreProvider)
+	factory.Set(oauth2.KeyAccess, store.DefaultSrc, oauth2.AccessDataStoreProvider)
+	factory.Set(oauth2.KeyAuth, store.DefaultSrc, oauth2.AuthorizeDataStoreProvider)
+	factory.Set(oauth2.KeyClient, store.DefaultSrc, oauth2.ClientStoreProvider)
+	factory.Set(oauth2.KeyUser, store.DefaultSrc, oauth2.UserStoreProvider)
+
+	ctx = store.WithFactory(context.Background(), factory)
 }
 
 func randStr(n int) string {
@@ -31,12 +45,7 @@ func randStr(n int) string {
 
 func TestUserAStore(t *testing.T) {
 
-	r := &http.Request{}
-	usp, err := store.Providers.Get("UserA")
-	if err != nil {
-		t.Logf("Unable to obtain store provider: %s", err.Error())
-	}
-	us, err := usp.Store(r)
+	us, err := store.Get(ctx, "UserA")
 	if err != nil {
 		t.Logf("Unable to obtain store: %s", err.Error())
 	}
@@ -66,12 +75,7 @@ func TestUserAStore(t *testing.T) {
 
 func TestUserBStore(t *testing.T) {
 
-	r := &http.Request{}
-	usp, err := store.Providers.Get("UserB")
-	if err != nil {
-		t.Logf("Unable to obtain store provider: %s", err.Error())
-	}
-	us, err := usp.Store(r)
+	us, err := store.Get(ctx, "UserB")
 	if err != nil {
 		t.Logf("Unable to obtain store: %s", err.Error())
 	}

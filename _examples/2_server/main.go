@@ -2,11 +2,8 @@
 package main
 
 import (
-	"github.com/gourd/kit/store/upperio"
-
 	"net/http"
 	"os"
-	"upper.io/db/sqlite"
 )
 
 // port to use
@@ -30,15 +27,10 @@ func init() {
 //
 func main() {
 
-	// define db
-	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
-		Database: `./data/sqlite3.db`,
-	})
-
 	// use the MainHandler (should be gourd generated)
 	// alternatively, user may copy the content of MainHandler
 	// here then modify
-	http.Handle("/", MainHandler())
+	http.Handle("/", NewHandler(NewFactory(`./data/sqlite3.db`)))
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)

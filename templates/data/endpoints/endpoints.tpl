@@ -19,8 +19,20 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 	// variables to use later
 	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
-	getStore := Get{{ .Store.Name }}
-	storeName := "{{ .Store.Name }}"
+	storeKey := "{{ .Store.Name }}"
+	getStore := func(ctx context.Context) (s *{{ .Store.Name }}, err error) {
+		raw, err := store.Get(ctx, storeKey)
+		if err != nil {
+			return
+		}
+
+		s, ok := raw.(*{{ .Store.Name }})
+		if !ok {
+			err = fmt.Errorf("store.Get(\"{{ .Store.Name }}\") does not return *{{ .Store.Name }}")
+			return
+		}
+		return
+	}
 
 	// store endpoints here
 	// TODO: may have new struct to store
@@ -38,10 +50,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// get store
-		s, err := getStore(r)
+		s, err := getStore(ctx)
 		if err != nil {
 			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 			err = serr
 			return
 		}
@@ -80,10 +92,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// get store
-		s, err := getStore(r)
+		s, err := getStore(ctx)
 		if err != nil {
 			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 			err = serr
 			return
 		}
@@ -129,10 +141,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// get store
-		s, err := getStore(r)
+		s, err := getStore(ctx)
 		if err != nil {
 			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 			err = serr
 			return
 		}
@@ -187,10 +199,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// get store
-		s, err := getStore(r)
+		s, err := getStore(ctx)
 		if err != nil {
 			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 			err = serr
 			return
 		}
@@ -231,10 +243,10 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		}
 
 		// get store
-		s, err := getStore(r)
+		s, err := getStore(ctx)
 		if err != nil {
 			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeName, err)
+			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
 			err = serr
 			return
 		}
