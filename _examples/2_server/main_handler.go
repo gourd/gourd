@@ -105,7 +105,7 @@ func NewHandler(factory store.Factory) http.Handler {
 	// add store rest to router
 	PostStoreRest(rtfn, genPath("post", "posts"), common)
 	CommentStoreRest(rtfn, genPath("comment", "comments"), common)
-	oauth2.RoutePat(rtr, "/oauth", m.GetEndpoints(factory))
+	oauth2.Route(rtfn, "/oauth", m.GetEndpoints(factory))
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form

@@ -45,7 +45,7 @@ func dummyNewUser(password string) *oauth2.User {
 	return u
 }
 
-func dummyNewClient(redirectUri string) *oauth2.Client {
+func dummyNewClient(redirectURI string) *oauth2.Client {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	randSeq := func(n int) string {
@@ -57,10 +57,10 @@ func dummyNewClient(redirectUri string) *oauth2.Client {
 	}
 
 	return &oauth2.Client{
-		Id:          randSeq(10),
+		ID:          randSeq(10),
 		Secret:      randSeq(10),
-		RedirectUri: redirectUri,
-		UserId:      randSeq(10),
+		RedirectURI: redirectURI,
+		UserID:      randSeq(10),
 	}
 }
 
@@ -124,7 +124,7 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 			panic(err)
 		}
 		c := dummyNewClient(redirect)
-		c.UserId = u.Id
+		c.UserID = u.ID
 		err = cs.Create(store.NewConds(), c)
 		if err != nil {
 			panic(err)
@@ -148,7 +148,7 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 		// build the query string
 		q := &url.Values{}
 		q.Add("response_type", "code")
-		q.Add("client_id", c.Id)
+		q.Add("client_id", c.ID)
 		q.Add("redirect_uri", redirect)
 
 		req, err := http.NewRequest("POST",
@@ -199,7 +199,7 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 		// build user request to token endpoint
 		form := &url.Values{}
 		form.Add("code", code)
-		form.Add("client_id", c.Id)
+		form.Add("client_id", c.ID)
 		form.Add("client_secret", c.Secret)
 		form.Add("grant_type", "authorization_code")
 		form.Add("redirect_uri", redirect)
