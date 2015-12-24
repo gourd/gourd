@@ -35,13 +35,15 @@ CREATE TABLE comments (
 
 DROP TABLE IF EXISTS user;
 CREATE TABLE user (
-  `id`       TEXT PRIMARY KEY,
-  `username` TEXT,
-  `email`    TEXT,
-  `password` TEXT,
-  `name`     INTEGER,
-  `created`  INTEGER,
-  `updated`  INTEGER
+  `id`        TEXT PRIMARY KEY,
+  `username`  TEXT,
+  `email`     TEXT,
+  `password`  TEXT,
+  `name`      TEXT,
+  `meta_json` TEXT,
+  `token`     TEXT,
+  `created`   INTEGER,
+  `updated`   INTEGER
 );
 
 
