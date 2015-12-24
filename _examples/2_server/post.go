@@ -1,12 +1,17 @@
 //go:generate gourd gen store -type=Post -coll=posts $GOFILE
-//go:generate gourd gen endpoints -type=Post -store=PostStore post_store.go
-//go:generate gourd gen rest -type=Post -store=PostStore post_store.go
+//go:generate gourd gen endpoints -type=Post -store=PostStore -storekey=PostKey post_store.go
+//go:generate gourd gen rest -type=Post -store=PostStore -storekey=PostKey post_store.go
 
 package main
 
 import (
 	"time"
 )
+
+type myKey int
+
+// PostKey is the store Key for generated PostStore
+const PostKey myKey = 0
 
 // Post is for blog post
 // This is a multiple line comment

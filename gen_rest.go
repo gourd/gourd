@@ -27,6 +27,11 @@ func init() {
 				Usage: "type name of the entity store, required",
 			},
 			cli.StringFlag{
+				Name:  "storekey, k",
+				Value: "",
+				Usage: "the entity store key variable",
+			},
+			cli.StringFlag{
 				Name:  "router, r",
 				Value: "gorilla/pat",
 				Usage: "name of router to use",
@@ -74,6 +79,12 @@ func decodeRest(c *cli.Context) (ctx compile.Context, err error) {
 		return
 	}
 	ctx.Set("Store", c.String("store"))
+
+	if c.String("storekey") != "" {
+		ctx.Set("StoreKey", c.String("storekey"))
+	} else {
+		ctx.Set("StoreKey", `"`+c.String("store")+"Service"+`"`)
+	}
 
 	// router
 	ctx.Set("Router", c.String("router"))

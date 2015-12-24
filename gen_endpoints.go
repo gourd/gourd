@@ -30,6 +30,11 @@ func init() {
 				Usage: "type name of the entity store, required",
 			},
 			cli.StringFlag{
+				Name:  "storekey, k",
+				Value: "",
+				Usage: "the entity store key variable",
+			},
+			cli.StringFlag{
 				Name:  "output, o",
 				Value: "",
 				Usage: "output file name; default srcdir/<type>_store.go",
@@ -75,6 +80,12 @@ func decodeEndpoints(c *cli.Context) (ctx compile.Context, err error) {
 		return
 	}
 	ctx.Set("StoreName", c.String("store"))
+
+	if c.String("storekey") != "" {
+		ctx.Set("StoreKey", c.String("storekey"))
+	} else {
+		ctx.Set("StoreKey", `"`+c.String("store")+"Service"+`"`)
+	}
 
 	// parse type of type name from given file(s)
 	pkg, sts, err := readTypeFile(fns[0], []string{ctx.GetStr("StoreName")})

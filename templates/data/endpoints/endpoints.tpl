@@ -19,7 +19,7 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 	// variables to use later
 	allocEntityList := func() *[]{{ .Type }} { return &[]{{ .Type }}{} }
-	storeKey := "{{ .Store.Name }}"
+	storeKey := {{ .StoreKey }}
 	getStore := func(ctx context.Context) (s *{{ .Store.Name }}, err error) {
 		raw, err := store.Get(ctx, storeKey)
 		if err != nil {

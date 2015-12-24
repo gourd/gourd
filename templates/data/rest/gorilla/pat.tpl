@@ -25,7 +25,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 	// variables to use later
 	noun := paths.Noun()
-	storeKey := "{{ .Store }}"
+	storeKey := {{ .StoreKey }}
 	getStore := func(ctx context.Context) (s *{{ .Store }}, err error) {
 		raw, err := store.Get(ctx, storeKey)
 		if err != nil {

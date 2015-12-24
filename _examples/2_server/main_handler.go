@@ -27,7 +27,7 @@ func NewFactory(fn string) store.Factory {
 		Database: `./data/sqlite3.db`,
 	}))
 	factory.Set("CommentStore", store.DefaultSrc, CommentStoreProvider)
-	factory.Set("PostStore", store.DefaultSrc, PostStoreProvider)
+	factory.Set(PostKey, store.DefaultSrc, PostStoreProvider)
 	factory.Set(oauth2.KeyAccess, store.DefaultSrc, oauth2.AccessDataStoreProvider)
 	factory.Set(oauth2.KeyAuth, store.DefaultSrc, oauth2.AuthorizeDataStoreProvider)
 	factory.Set(oauth2.KeyClient, store.DefaultSrc, oauth2.ClientStoreProvider)
