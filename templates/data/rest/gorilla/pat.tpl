@@ -305,7 +305,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	handlers["delete"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["delete"])
 	handlers["delete"].Methods = []string{"DELETE"}
-	handlers["delete"].DecodeFunc = decodeListReq
+	handlers["delete"].DecodeFunc = decodeIDReq
 	handlers["delete"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
 	handlers["delete"].Middlewares.Add(httpservice.MWInner,
 		checkPermBefore("delete "+noun.Singular()))

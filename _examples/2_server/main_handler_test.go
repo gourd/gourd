@@ -247,7 +247,8 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts, name, path string) {
 
 	// some dummy posts
-	p1 := dummyNewPost()
+	p1a := dummyNewPost()
+	p1b := dummyNewPost()
 
 	// REST API
 	posts := restit.Rest("Post", ts.URL+"/api/posts")
@@ -291,37 +292,60 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 		t.Errorf("paging.offset expect: %#v, got: %#v", want, have)
 	}
 
-	// test create
-	t1 := posts.Create(&p1).
+	// test create a
+	t1a := posts.Create(&p1a).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectResultCount(1).
 		ExpectResultsValid().
-		ExpectResultNth(0, p1)
-	_, err = t1.Run()
-	p2p, err := proto.GetNth(0)
+		ExpectResultNth(0, p1a)
+	_, err = t1a.Run()
+	p2ap, err := proto.GetNth(0)
 	if err != nil {
 		t.Error(err.Error())
 		t.FailNow()
 	}
-	p2 := p2p.(Post) // created post
+	p2a := p2ap.(Post) // created post
+
+	// test create a
+	t1b := posts.Create(&p1b).
+		AddHeader("Authority", token).
+		WithResponseAs(proto).
+		ExpectResultCount(1).
+		ExpectResultsValid().
+		ExpectResultNth(0, p1b)
+	_, err = t1b.Run()
+	p2bp, err := proto.GetNth(0)
+	if err != nil {
+		t.Error(err.Error())
+		t.FailNow()
+	}
+	p2b := p2bp.(Post) // created post
 
 	// test retrieve single
-	t2 := post.Retrieve(fmt.Sprintf("%d", p2.ID)).
+	t2a := post.Retrieve(fmt.Sprintf("%d", p2a.ID)).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
 		ExpectResultCountNot(0)
-	_, err = t2.Run()
+	_, err = t2a.Run()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	t2b := post.Retrieve(fmt.Sprintf("%d", p2b.ID)).
+		AddHeader("Authority", token).
+		WithResponseAs(proto).
+		ExpectResultCountNot(0)
+	_, err = t2b.Run()
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// test retrieve list
-	t2b := posts.Retrieve("").
+	t2l := posts.Retrieve("").
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
-		ExpectResultCountNot(0)
-	_, err = t2b.Run()
+		ExpectResultCount(2)
+	_, err = t2l.Run()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -329,7 +353,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	// test paging variables
 	if v, ok := proto.Paging["total"]; !ok {
 		t.Errorf("paging.total not found")
-	} else if want, have := 1, v; want != have {
+	} else if want, have := 2, v; want != have {
 		t.Errorf("paging.total expect: %#v, got: %#v", want, have)
 	}
 	if v, ok := proto.Paging["limit"]; !ok {
@@ -347,7 +371,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 
 	// test update, then retrieve single to compare
 	p3 := dummyNewPost()
-	p3.ID = p2.ID
+	p3.ID = p2a.ID
 	t3 := post.Update(fmt.Sprintf("%d", p3.ID), p3).
 		AddHeader("Authority", token).
 		WithResponseAs(proto).
@@ -382,6 +406,15 @@ func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts
 	_, err = t6.Run()
 	if err != nil {
 		t.Error(err.Error())
+	}
+	// test retrieve list
+	t6l := posts.Retrieve("").
+		AddHeader("Authority", token).
+		WithResponseAs(proto).
+		ExpectResultCount(1)
+	_, err = t6l.Run()
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 }
