@@ -144,4 +144,6 @@ func genStore(c *cli.Context) {
 		os.Exit(1)
 	}
 
+	fmt.Printf("generated %s\n", out)
+
 }
