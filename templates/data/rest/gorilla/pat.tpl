@@ -34,7 +34,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 		s, ok := raw.(*{{ .Store }})
 		if !ok {
-			err = fmt.Errorf("store.Get(\"{{ .Store }}\") does not return *{{ .Store }}")
+			err = fmt.Errorf(`store.Get({{ .StoreKey }}) does not return *{{ .StoreKey }}`)
 			return
 		}
 		return

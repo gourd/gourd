@@ -83,7 +83,7 @@ func decodeRest(c *cli.Context) (ctx compile.Context, err error) {
 	if c.String("storekey") != "" {
 		ctx.Set("StoreKey", c.String("storekey"))
 	} else {
-		ctx.Set("StoreKey", `"`+c.String("store")+"Service"+`"`)
+		ctx.Set("StoreKey", `"`+c.String("store")+`"`)
 	}
 
 	// router
