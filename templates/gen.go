@@ -2,5 +2,6 @@
 // the templates subpackage from "data" directory
 
 //go:generate go-bindata -o templates.go -ignore=gen.go -ignore=templates.go -pkg=templates -prefix=data/ data/...
+//go:generate go fmt templates.go
 
 package templates
