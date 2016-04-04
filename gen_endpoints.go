@@ -90,12 +90,12 @@ func decodeEndpoints(c *cli.Context) (ctx compile.Context, err error) {
 	// parse type of type name from given file(s)
 	pkg, sts, err := readTypeFile(fns[0], []string{ctx.GetStr("StoreName")})
 	if err != nil {
-		err = compile.Error("Error parsing %#v. Error: %#v. Exit.", fns[0], err.Error())
+		err = compile.Errorf("Error parsing %#v. Error: %#v. Exit.", fns[0], err.Error())
 		return
 	}
 
 	if len(sts) != 1 {
-		err = compile.Error("Type %#v not found", ctx.GetStr("TypeName"))
+		err = compile.Errorf("Type %#v not found", ctx.GetStr("TypeName"))
 		return
 	}
 

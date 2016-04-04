@@ -64,7 +64,7 @@ func CompileToFile(fn string, c *cli.Context, com Compiler) (err error) {
 	defer FormatFile(fn)
 	defer f.Close()
 	if err != nil {
-		err = Error(
+		err = Errorf(
 			"Failed to create output file %#v. reason: %#v",
 			fn, err.Error())
 		return

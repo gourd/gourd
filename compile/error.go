@@ -28,6 +28,11 @@ func Error(msg string, v ...interface{}) GourdError {
 	}
 }
 
+// Errorf is an alias of Error
+func Errorf(msg string, v ...interface{}) GourdError {
+	return Error(msg, v...)
+}
+
 // Exit returns a GourdError with "success" return code
 func Exit(msg string, v ...interface{}) GourdError {
 	return gourdError{
