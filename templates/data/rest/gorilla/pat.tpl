@@ -313,8 +313,8 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	return
 }
 
-// {{ .Store }}Rest binds store to pat router
-func {{ .Store }}Rest(rf httpservice.RouterFunc, paths httpservice.Paths, patches ...httpservice.ServicesPatch) {
+// {{ .Type }}Rest binds store to pat router
+func {{ .Type }}Rest(rf httpservice.RouterFunc, paths httpservice.Paths, patches ...httpservice.ServicesPatch) {
 
 	log.Printf("REST path: %s", paths.Plural())
 
