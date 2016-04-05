@@ -93,8 +93,8 @@ func NewHandler(factory store.Factory) (h http.Handler) {
 	}
 
 	// add services rest to router
-	PostStoreRest(rtfn, genPath("post", "posts"), common)
-	CommentStoreRest(rtfn, genPath("comment", "comments"), common)
+	PostRest(rtfn, genPath("post", "posts"), common)
+	CommentRest(rtfn, genPath("comment", "comments"), common)
 
 	// add login form to router
 	// TODO: need a way to inject templates for login form
