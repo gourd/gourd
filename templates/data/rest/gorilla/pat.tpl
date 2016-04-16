@@ -40,7 +40,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return
 	}
 
-
 	// define default middlewares
 	var prepareCreate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
 		return func (ctx context.Context, request interface{}) (respond interface{}, err error) {
@@ -280,7 +279,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	handlers["retrieve"].Middlewares.Add(httpservice.MWInner,
 		checkPermAfter("retrieve "+noun.Singular()))
 
-
 	handlers["update"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["update"])
 	handlers["update"].Methods = []string{"PUT"}
@@ -290,7 +288,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	handlers["update"].Middlewares.Add(httpservice.MWInner,
 		checkPermBefore("update "+noun.Singular()))
 
-
 	handlers["list"] = httpservice.NewJSONService(
 		paths.Plural(), endpoints["list"])
 	handlers["list"].Methods = []string{"GET"}
@@ -299,7 +296,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	handlers["list"].Middlewares.Add(httpservice.MWPrepare, prepareList)
 	handlers["list"].Middlewares.Add(httpservice.MWInner,
 		checkPermAfter("list "+noun.Singular()))
-
 
 	handlers["delete"] = httpservice.NewJSONService(
 		paths.Singular(), endpoints["delete"])
