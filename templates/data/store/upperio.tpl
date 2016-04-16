@@ -78,7 +78,7 @@ func (s *{{ .Type.Name }}Store) Create(
 	id, err := coll.Append(ep)
 	{{ end }}
 	if err != nil {
-		s.Logf("Error creating {{ .Type.Name }}: %s", err.Error())
+		s.errorf("Error creating {{ .Type.Name }}: %s", err.Error())
 		err = store.ErrorInternal
 		return
 	}
@@ -179,7 +179,7 @@ func (s *{{ .Type.Name }}Store) Update(
 	// update the matched entities
 	err = res.Update(ep)
 	if err != nil {
-		s.Logf("Error updating {{ .Type.Name }}: %s", err.Error())
+		s.errorf("Error updating {{ .Type.Name }}: %s", err.Error())
 		err = store.ErrorInternal
 	}
 	return
@@ -202,7 +202,7 @@ func (s *{{ .Type.Name }}Store) Delete(
 	// remove the matched entities
 	err = res.Remove()
 	if err != nil {
-		s.Logf("Error deleting {{ .Type.Name }}: %s", err.Error())
+		s.errorf("Error deleting {{ .Type.Name }}: %s", err.Error())
 		err = store.ErrorInternal
 	}
 	return nil
@@ -229,7 +229,7 @@ func (s *{{ .Type.Name }}Store) Coll() (coll db.Collection, err error) {
 	// get raw collection
 	coll, err = s.Db.Collection("{{.Coll}}")
 	if err != nil {
-		s.Logf("Error connecting collection {{.Coll}}: %s",
+		s.errorf("Error connecting collection {{.Coll}}: %s",
 			err.Error())
 		err = store.ErrorInternal
 	}
@@ -242,20 +242,20 @@ func (s *{{ .Type.Name }}Store) SetLogger(logger log.Logger) {
 }
 
 // Log logs the message with session id
-func (s *{{ .Type.Name }}Store) Log(msg string) {
+func (s *{{ .Type.Name }}Store) error(msg string) {
 	s.logger.Log("store", "{{ .Type.Name }}Store", "message", msg)
 }
 
 // Logf logs the message with session id
-func (s *{{ .Type.Name }}Store) Logf(msg string, v ...interface{}) {
-	s.Log(fmt.Sprintf(msg, v...))
+func (s *{{ .Type.Name }}Store) errorf(msg string, v ...interface{}) {
+	s.error(fmt.Sprintf(msg, v...))
 }
 
 // Close would not close database connection at all.
 // Please use store.CloseAllIn(ctx) to wrap up connections
 // in a context
 func (s *{{ .Type.Name }}Store) Close() error {
-	s.Log("{{ .Type.Name }}Store.Close()")
+	s.error("{{ .Type.Name }}Store.Close()")
 	return nil
 }
 
