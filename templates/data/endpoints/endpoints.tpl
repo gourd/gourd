@@ -9,7 +9,6 @@
 	"golang.org/x/net/context"
 
 	"fmt"
-	"log"
 {{ end }}
 
 {{ define "code" }}
@@ -60,7 +59,6 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		defer s.Close()
 
 		// create entity
-		log.Printf("create: %#v", e)
 		err = s.Create(nil, e)
 		if err != nil {
 			serr := store.ErrorInternal

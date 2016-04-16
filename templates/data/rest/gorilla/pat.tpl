@@ -262,7 +262,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	// define middleware chains of all RESTful endpoints
 	handlers = make(map[string]*httpservice.Service)
 
-	log.Printf("path: %#v, create", paths.Plural())
 	handlers["create"] = httpservice.NewJSONService(
 		paths.Plural(), endpoints["create"])
 	handlers["create"].Methods = []string{"POST"}
