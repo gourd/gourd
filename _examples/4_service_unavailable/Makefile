@@ -34,7 +34,7 @@ flag.deps:
 	go get github.com/gourd/kit/store/upperio
 	go get github.com/gourd/kit/oauth2
 	go get github.com/gourd/kit/perm
-	go get github.com/yookoala/restit
+	go get github.com/yookoala/restit/v1
 	touch flag.deps
 
 .PHONY: build test clean generate message

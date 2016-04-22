@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yookoala/restit"
+	restit "github.com/yookoala/restit/v1"
 	"testing"
 )
 

@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/gorilla/pat"
-	"github.com/yookoala/restit"
+	restit "github.com/yookoala/restit/v1"
 )
 
 // could be used repeatedly for different unit test
