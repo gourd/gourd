@@ -141,6 +141,20 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	checkPermBefore := func (permission string) endpoint.Middleware {
 		return func (inner endpoint.Endpoint) endpoint.Endpoint {
 			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+				m := perm.GetMux(ctx)
+				err = m.Allow(ctx, permission, request)
+				if err != nil {
+					return
+				}
+				return inner(ctx, request)
+			}
+		}
+	}
+
+	// generates request permission checker middleware
+	checkPermAfter := func (permission string) endpoint.Middleware {
+		return func (inner endpoint.Endpoint) endpoint.Endpoint {
+			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
 				v, err := inner(ctx, request)
 				if err != nil {
@@ -156,20 +170,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 				response = v
 				return
 
-			}
-		}
-	}
-
-	// generates request permission checker middleware
-	checkPermAfter := func (permission string) endpoint.Middleware {
-		return func (inner endpoint.Endpoint) endpoint.Endpoint {
-			return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-				m := perm.GetMux(ctx)
-				err = m.Allow(ctx, permission, request)
-				if err != nil {
-					return
-				}
-				return inner(ctx, request)
 			}
 		}
 	}
