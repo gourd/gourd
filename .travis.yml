@@ -7,9 +7,6 @@ addons:
     packages:
       - sqlite3
 
-install:
-  - go get ./...
-
 go:
   - 1.5
   - 1.6
