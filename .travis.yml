@@ -7,6 +7,10 @@ addons:
     packages:
       - sqlite3
 
+os:
+  - linux
+  - osx
+
 go:
   - 1.5
   - 1.6
