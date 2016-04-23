@@ -22,7 +22,7 @@ func NewFactory() store.Factory {
 
 	// define db
 	factory := store.NewFactory()
-	factory.SetSource(store.DefaultSrc, upperio.Source(driver.Adapter, driver.ConnectionURL{
+	factory.SetSource(store.DefaultSrc, upperio.NewSource(driver.Adapter, driver.ConnectionURL{
 		Database: `some-nonsense`,
 	}))
 	factory.Set("CommentStore", store.DefaultSrc, CommentStoreProvider)

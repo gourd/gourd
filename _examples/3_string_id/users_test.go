@@ -20,7 +20,7 @@ func init() {
 
 	// define db
 	factory := store.NewFactory()
-	factory.SetSource(store.DefaultSrc, upperio.Source(sqlite.Adapter, sqlite.ConnectionURL{
+	factory.SetSource(store.DefaultSrc, upperio.NewSource(sqlite.Adapter, sqlite.ConnectionURL{
 		Database: `./data/sqlite3.db`,
 	}))
 	factory.Set("UserA", store.DefaultSrc, UserAStoreProvider)
