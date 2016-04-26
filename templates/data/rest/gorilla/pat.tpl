@@ -45,6 +45,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return func (ctx context.Context, request interface{}) (respond interface{}, err error) {
 			// placeholder: anything you want to do with the entity
 			//              before append to database
+			httpservice.EnforceCreate(request)
 			return inner(ctx, request)
 		}
 	}
@@ -88,10 +89,11 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 			// tell the inner
 			if len(*el) > 0 {
-				sReq.Previous = (*el)[0]
+				sReq.Previous = &(*el)[0]
 			}
 
-			// TODO: enforce agreement on sReq.Payload with previous sReq.Entity
+			// enforce agreement on sReq.Payload with previous sReq.Entity
+			httpservice.EnforceUpdate(sReq.Previous, sReq.Payload)
 
 			// placeholder: anything you want to do with the entity
 			//              before update to database
