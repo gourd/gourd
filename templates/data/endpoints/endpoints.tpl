@@ -5,6 +5,7 @@
 {{ define "imports" }}
 	"github.com/go-kit/kit/endpoint"
 	gourdctx "github.com/gourd/kit/context"
+	httpservice "github.com/gourd/kit/service/http"
 	"github.com/gourd/kit/store"
 	"golang.org/x/net/context"
 
@@ -78,7 +79,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 	endpoints["retrieve"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
-		q := request.(store.Query)
+		sReq := request.(*httpservice.Request)
+		q := sReq.Query
 
 		// get context information
 		r := gourdctx.HTTPRequest(ctx)
@@ -127,7 +129,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 	endpoints["list"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
-		q := request.(store.Query)
+		sReq := request.(*httpservice.Request)
+		q := sReq.Query
 
 		// get context information
 		r := gourdctx.HTTPRequest(ctx)
@@ -182,9 +185,9 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 
 	endpoints["update"] = func(ctx context.Context, request interface{}) (res interface{}, err error) {
 
-		rmap := request.(map[string]interface{})
-		q := rmap["query"].(store.Query)
-		e := rmap["entity"]
+		sReq := request.(*httpservice.Request)
+		q := sReq.Query
+		e := sReq.Payload
 		cond := q.GetConds()
 
 		// get context information
@@ -228,7 +231,8 @@ func {{ .Store.Name }}Endpoints(noun, nounp string) (endpoints map[string]endpoi
 		el := allocEntityList()
 
 		// store query of id
-		q := request.(store.Query)
+		sReq := request.(*httpservice.Request)
+		q := sReq.Query
 		cond := q.GetConds()
 
 		// get context information

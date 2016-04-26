@@ -52,7 +52,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	var prepareUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
-			rmap := request.(map[string]interface{})
+			sReq := request.(*httpservice.Request)
 
 			// get context information
 			r := gourdctx.HTTPRequest(ctx)
@@ -64,7 +64,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			}
 
 			el := &[]{{ .Type }}{}
-			q := rmap["query"].(store.Query)
+			q := sReq.Query
 
 			// get store
 			s, err := getStore(ctx)
@@ -76,7 +76,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			}
 			defer s.Close()
 
-			// find the content of the id
+			// find the previous content of the id
 			err = s.Search(q).All(el)
 			if err != nil {
 				serr := store.ErrorInternal
@@ -88,12 +88,14 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 			// tell the inner
 			if len(*el) > 0 {
-				rmap["prev"] = (*el)[0]
+				sReq.Previous = (*el)[0]
 			}
+
+			// TODO: enforce agreement on sReq.Payload with previous sReq.Entity
 
 			// placeholder: anything you want to do with the entity
 			//              before update to database
-			return inner(ctx, rmap)
+			return inner(ctx, sReq)
 		}
 	}
 
@@ -175,29 +177,53 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	}
 
 	//
-	// ====
+	// ==== raw decode functions
+	//
+
+	decodeServiceIDReq := func(r *http.Request) (request *httpservice.Request, err error) {
+		id := r.URL.Query().Get(":id") // will change
+		cond := store.NewConds().Add("id", id)
+		request = &httpservice.Request{
+			Request: r,
+			Query: store.NewQuery().SetConds(cond),
+		}
+		return
+	}
+
+	decodeJSONEntity := func(r *http.Request) (entity *{{ .Type }}, err error) {
+		// allocate entity
+		entity = &{{ .Type }}{}
+
+		// decode request
+		dec := json.NewDecoder(r.Body)
+		err = dec.Decode(entity)
+		return
+	}
+
+	//
+	// ==== httptransport.DecodeRequestFunc implementations
 	//
 
 	// decodeIDReq generically decoded :id field
 	// (works with pat based URL routing, router specific)
 	var decodeIDReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
-		id := r.URL.Query().Get(":id") // will change
-		cond := store.NewConds().Add("id", id)
-		request = store.NewQuery().SetConds(cond)
-		return
+		return decodeServiceIDReq(r)
 	}
 
 	// decodeListReq decode query for list endpoint
 	var decodeListReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
 
-		q := store.NewQuery()
+		sReq := &httpservice.Request{
+			Request: r,
+			Query: store.NewQuery(),
+		}
 
 		// parse sort parameter
 		sortStr := r.FormValue("sorts")
 		if sortStr != "" {
 			sorts := strings.Split(sortStr, ",")
 			for _, sort := range sorts {
-				q.Sort(sort)
+				sReq.Query.Sort(sort)
 			}
 		}
 
@@ -219,44 +245,39 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		}(r)
 
 		// retrieve
-		q.SetOffset(offset)
-		q.SetLimit(limit)
+		sReq.Query.SetOffset(offset)
+		sReq.Query.SetLimit(limit)
 
-		request = q
+		request = sReq
 		return
 	}
 
 	// decodeJSONReq returns a DecodeRequestFunc that decode request
 	// into allocated memory structure
 	var decodeJSONReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
-		// allocate entity
-		request = &{{ .Type }}{}
-
-		// decode request
-		dec := json.NewDecoder(r.Body)
-		err = dec.Decode(request)
-		return
+		return decodeJSONEntity(r)
 	}
 
 	// decodeUpdate returns a DecodeRequestFunc that decode request
 	var decodeUpdate httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
-		rmap := make(map[string]interface{})
 
-		rmap["entity"], err = decodeJSONReq(r)
+		sReq, err := decodeServiceIDReq(r)
 		if err != nil {
 			return
 		}
 
-		rmap["query"], err = decodeIDReq(r)
+		sReq.Payload, err = decodeJSONEntity(r)
 		if err != nil {
 			return
 		}
 
-		rmap["prev"] = nil
-
-		request = rmap
+		request = sReq
 		return
 	}
+
+	//
+	// ==== httpservce.Services
+	//
 
 	// define middleware chains of all RESTful endpoints
 	handlers = make(map[string]*httpservice.Service)
