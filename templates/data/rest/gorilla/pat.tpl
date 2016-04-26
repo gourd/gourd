@@ -263,6 +263,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 	handlers["create"] = httpservice.NewJSONService(
 		paths.Plural(), endpoints["create"])
+	handlers["create"].Weight = 1
 	handlers["create"].Methods = []string{"POST"}
 	handlers["create"].DecodeFunc = decodeJSONReq
 	handlers["create"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
@@ -290,6 +291,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 	handlers["list"] = httpservice.NewJSONService(
 		paths.Plural(), endpoints["list"])
+	handlers["list"].Weight = 1
 	handlers["list"].Methods = []string{"GET"}
 	handlers["list"].DecodeFunc = decodeListReq
 	handlers["list"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
