@@ -36,8 +36,9 @@ func main() {
 		{
 			Name:  "gen",
 			Usage: "generate code",
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) (err error) {
 				println("generate: ", c.Args().First())
+				return
 			},
 			Subcommands: cmds["gen"],
 		},

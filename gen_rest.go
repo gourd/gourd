@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/codegangsta/cli"
 	"github.com/gourd/gourd/compile"
@@ -111,7 +110,7 @@ func encodeRest(w io.Writer, ctx compile.Context) error {
 }
 
 // generate the store rest go file
-func genRest(c *cli.Context) {
+func genRest(c *cli.Context) (err error) {
 
 	// output file name
 	var out string
@@ -123,14 +122,10 @@ func genRest(c *cli.Context) {
 
 	// compile the file
 	com := compile.NewCompiler(decodeRest, encodeRest)
-	if err := compile.CompileToFile(out, c, com); err != nil {
-		fmt.Println(err.Error())
-		if gerr, ok := err.(compile.GourdError); ok {
-			os.Exit(gerr.Code())
-		}
-		os.Exit(1)
+	if err = compile.CompileToFile(out, c, com); err != nil {
+		return
 	}
 
 	fmt.Printf("generated %s\n", out)
-
+	return
 }

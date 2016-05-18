@@ -7,7 +7,6 @@ import (
 	"github.com/gourd/gourd/templates"
 
 	"fmt"
-	"os"
 
 	"github.com/codegangsta/cli"
 )
@@ -112,7 +111,7 @@ func encodeEndpoints(w io.Writer, ctx compile.Context) error {
 }
 
 // generate the endpoints go file
-func genEndpoints(c *cli.Context) {
+func genEndpoints(c *cli.Context) (err error) {
 
 	// output file
 	var out string
@@ -124,12 +123,10 @@ func genEndpoints(c *cli.Context) {
 
 	// compile the file
 	com := compile.NewCompiler(decodeEndpoints, encodeEndpoints)
-	if err := compile.CompileToFile(out, c, com); err != nil {
-		fmt.Println(err.Error())
-		if gerr, ok := err.(compile.GourdError); ok {
-			os.Exit(gerr.Code())
-		}
-		os.Exit(1)
+	if err = compile.CompileToFile(out, c, com); err != nil {
+		return
 	}
 
+	fmt.Printf("generated %s\n", out)
+	return
 }

@@ -124,7 +124,7 @@ func encodeStore(w io.Writer, ctx compile.Context) error {
 }
 
 // generate the store go file
-func genStore(c *cli.Context) {
+func genStore(c *cli.Context) (err error) {
 
 	// output file
 	var out string
@@ -136,14 +136,10 @@ func genStore(c *cli.Context) {
 
 	// compile the file
 	com := compile.NewCompiler(decodeStore, encodeStore)
-	if err := compile.CompileToFile(out, c, com); err != nil {
-		fmt.Println(err.Error())
-		if gerr, ok := err.(compile.GourdError); ok {
-			os.Exit(gerr.Code())
-		}
-		os.Exit(1)
+	if err = compile.CompileToFile(out, c, com); err != nil {
+		return
 	}
 
 	fmt.Printf("generated %s\n", out)
-
+	return
 }
