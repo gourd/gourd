@@ -19,6 +19,7 @@
 	"strings"
 {{ end }}
 
+
 {{ define "code" }}
 
 func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint.Endpoint) (handlers httpservice.Services) {
@@ -182,7 +183,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	// ==== raw decode functions
 	//
 
-	decodeServiceIDReq := func(r *http.Request) (request *httpservice.Request, err error) {
+	decodeServiceIDReq := func(ctx context.Context, r *http.Request) (request *httpservice.Request, err error) {
 		id := r.URL.Query().Get(":id") // will change
 		cond := store.NewConds().Add("id", id)
 		request = &httpservice.Request{
@@ -192,7 +193,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return
 	}
 
-	decodeJSONEntity := func(r *http.Request) (entity *{{ .Type }}, err error) {
+	decodeJSONEntity := func(ctx context.Context, r *http.Request) (entity *{{ .Type }}, err error) {
 		// allocate entity
 		entity = &{{ .Type }}{}
 
@@ -208,12 +209,12 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 	// decodeIDReq generically decoded :id field
 	// (works with pat based URL routing, router specific)
-	var decodeIDReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
-		return decodeServiceIDReq(r)
+	var decodeIDReq httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
+		return decodeServiceIDReq(ctx, r)
 	}
 
 	// decodeListReq decode query for list endpoint
-	var decodeListReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
+	var decodeListReq httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 
 		sReq := &httpservice.Request{
 			Request: r,
@@ -256,19 +257,19 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 	// decodeJSONReq returns a DecodeRequestFunc that decode request
 	// into allocated memory structure
-	var decodeJSONReq httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
-		return decodeJSONEntity(r)
+	var decodeJSONReq httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
+		return decodeJSONEntity(ctx, r)
 	}
 
 	// decodeUpdate returns a DecodeRequestFunc that decode request
-	var decodeUpdate httptransport.DecodeRequestFunc = func(r *http.Request) (request interface{}, err error) {
+	var decodeUpdate httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 
-		sReq, err := decodeServiceIDReq(r)
+		sReq, err := decodeServiceIDReq(ctx, r)
 		if err != nil {
 			return
 		}
 
-		sReq.Payload, err = decodeJSONEntity(r)
+		sReq.Payload, err = decodeJSONEntity(ctx, r)
 		if err != nil {
 			return
 		}

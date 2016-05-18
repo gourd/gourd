@@ -11,7 +11,7 @@ var app *cli.App
 var now time.Time
 
 // VERSION stores the version string of this library
-const VERSION = "0.5dev"
+const VERSION = "0.6dev"
 
 // TIMEFORMAT stores the time format to be used in
 // timestamp generation
