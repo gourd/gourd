@@ -52,7 +52,7 @@ func init() {
 func decodeRest(c *cli.Context) (ctx compile.Context, err error) {
 
 	ctx = compile.Context{
-		"Now": now.Format(TIMEFORMAT),
+		//"Now": now.Format(TIMEFORMAT),
 		"Ver": VERSION,
 	}
 
