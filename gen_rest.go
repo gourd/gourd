@@ -92,7 +92,7 @@ func decodeRest(c *cli.Context) (ctx compile.Context, err error) {
 	// read type of type name from given file(s)
 	pkg, sts, ierr := readTypeFile(fns[0], []string{ctx.GetStr("Store")})
 	if ierr != nil {
-		err = compile.Error("Error parsing \"%s\". Error: %s. Exit.", fns[0], ierr.Error())
+		err = compile.Errorf("Error parsing \"%s\". Error: %s. Exit.", fns[0], ierr.Error())
 		return
 	}
 	ctx.Set("Pkg", pkg)

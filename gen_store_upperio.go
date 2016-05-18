@@ -48,10 +48,12 @@ type UpperFieldSpec struct {
 	*goparser.FieldSpec
 }
 
+// IsString test if the field is string
 func (s UpperFieldSpec) IsString() bool {
 	return s.Type == "string"
 }
 
+// IsInt test if the field is int
 func (s *UpperFieldSpec) IsInt() bool {
 	return s.Type == "int" || s.Type == "uint" ||
 		s.Type == "int32" || s.Type == "uint32" ||
