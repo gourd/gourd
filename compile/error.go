@@ -10,6 +10,11 @@ type gourdError struct {
 	msg  string
 }
 
+// ExitCode implements cli.ExitCoder interface
+func (err gourdError) ExitCode() int {
+	return err.code
+}
+
 // Code return the OS return code for the error
 func (err gourdError) Code() int {
 	return err.code
