@@ -10,7 +10,6 @@
 
 	{{ if .Id.IsString }}
 	"encoding/base64"
-	"strings"
 	{{ end }}
 	"fmt"
 	"io/ioutil"
@@ -59,7 +58,7 @@ func (s *{{ .Type.Name }}Store) Create(
 	{{ if .Id.IsString }}
 	uid := uuid.NewV4()
 	e := ep.(*{{.Type.Name}})
-	e.{{ .Id.Name }} = strings.TrimRight(base64.URLEncoding.EncodeToString(uid[:]), "=")
+	e.{{ .Id.Name }} = base64.RawURLEncoding.EncodeToString(uid[:])
 	{{ end }}
 
 	// Marshal the item, if possible
