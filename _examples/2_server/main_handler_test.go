@@ -388,7 +388,6 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 		t.Error(err.Error())
 	}
 
-	t.Logf("p1a.ID = %#v", p1a.ID)
 	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1a.ID)).
 		AddHeader("Authority", token).
 		Expect(restit.StatusCodeIs(http.StatusOK)).
@@ -433,10 +432,26 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 		t.Error(err.Error())
 	}
 
+	// test partial update (POST to item endpoint)
+	p4 := p3
+	p4.UID = 1234
+	p4Partial := struct {
+		UID int32 `json:"uid"`
+	}{UID: p4.UID}
+	resp, err = service.Create(p4Partial, fmt.Sprintf("post/%d", p1a.ID)).
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p4", equals(p4))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	}
+
 	resp, err = service.Delete(fmt.Sprintf("post/%d", p1a.ID)).
 		AddHeader("Authority", token).
 		Expect(restit.StatusCodeIs(http.StatusOK)).
-		Expect(nthEquals(0, "posts", "equals p3", equals(p3))).
+		Expect(nthEquals(0, "posts", "equals p4", equals(p4))).
 		Do()
 	if err != nil {
 		t.Logf("raw body: %s", resp)

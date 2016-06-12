@@ -10,6 +10,7 @@
 	"github.com/gourd/kit/store"
 	"golang.org/x/net/context"
 
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -84,6 +85,61 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 			// enforce agreement on sReq.Payload with previous sReq.Entity
 			httpservice.EnforceUpdate(sReq.Previous, sReq.Payload)
+
+			// placeholder: anything you want to do with the entity
+			//              before update to database
+			return inner(ctx, sReq)
+		}
+	}
+
+	var preparePartialUpdate endpoint.Middleware = func(inner endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+
+			sReq := request.(*httpservice.Request)
+			el := &[]{{ .Type }}{}
+			q := sReq.Query
+
+			// get store
+			s, err := getStore(ctx)
+			if err != nil {
+				serr := store.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error obtaining %T(%v) store (%s)", storeKey, storeKey, err)
+				err = serr
+				return
+			}
+			defer s.Close()
+
+			// find the previous content of the id
+			err = s.Search(q).All(el)
+			if err != nil {
+				serr := store.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+					noun.Singular(), err)
+				err = serr
+				return
+			}
+
+			// tell the inner
+			if len(*el) > 0 {
+				sReq.Previous = &(*el)[0]
+			}
+
+			toUpdate := &(*el)[0]
+			buf := sReq.Payload.(*bytes.Buffer)
+			err = json.Unmarshal(buf.Bytes(), &toUpdate)
+			if err != nil {
+				serr := store.Error(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+				serr.ServerMsg = fmt.Sprintf("error decoding json request (%s)", err)
+				err = serr
+				return
+			}
+			sReq.Payload = toUpdate
+
+			// enforce agreement on sReq.Payload with previous 	sReq.Entity
+			httpservice.EnforceUpdate(sReq.Previous, sReq.Payload)
+
+			// enforce agreement on sReq.Payload with previous sReq.Entity
+			httpservice.EnforceUpdate(sReq.Previous, toUpdate)
 
 			// placeholder: anything you want to do with the entity
 			//              before update to database
@@ -267,6 +323,22 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return
 	}
 
+	// decodePartialUpdate returns a DecodeRequestFunc that decode request
+	var decodePartialUpdate httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
+
+		sReq, err := decodeServiceIDReq(ctx, r)
+		if err != nil {
+			return
+		}
+
+		buf := bytes.NewBuffer([]byte{})
+		buf.ReadFrom(r.Body)
+		sReq.Payload = buf
+
+		request = sReq
+		return
+	}
+
 	//
 	// ==== httpservce.Services
 	//
@@ -300,6 +372,15 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	handlers["update"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
 	handlers["update"].Middlewares.Add(httpservice.MWPrepare, prepareUpdate)
 	handlers["update"].Middlewares.Add(httpservice.MWInner,
+		checkPermBefore("update "+noun.Singular()))
+
+	handlers["update_partially"] = httpservice.NewJSONService(
+		paths.Singular(), endpoints["update"])
+	handlers["update_partially"].Methods = []string{"POST"}
+	handlers["update_partially"].DecodeFunc = decodePartialUpdate
+	handlers["update_partially"].Middlewares.Add(httpservice.MWProtocol, prepareProtocol)
+	handlers["update_partially"].Middlewares.Add(httpservice.MWPrepare, preparePartialUpdate)
+	handlers["update_partially"].Middlewares.Add(httpservice.MWInner,
 		checkPermBefore("update "+noun.Singular()))
 
 	handlers["list"] = httpservice.NewJSONService(
