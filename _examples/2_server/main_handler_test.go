@@ -346,6 +346,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed retrieve test 0")
 	}
 
 	resp, err = service.Create(p1a, "posts").
@@ -357,6 +359,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	} else {
+		t.Logf("passed create test p1a")
 		root, _ := resp.JSON()
 		root.Get("posts").GetN(0).Unmarshal(&p1a)
 	}
@@ -370,6 +373,7 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	} else {
+		t.Logf("passed create test p1b")
 		root, _ := resp.JSON()
 		root.Get("posts").GetN(0).Unmarshal(&p1b)
 	}
@@ -386,6 +390,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed retrieve test 1")
 	}
 
 	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1a.ID)).
@@ -396,6 +402,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed retrieve test p1a")
 	}
 
 	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1b.ID)).
@@ -406,6 +414,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed retrieve test p1b")
 	}
 
 	// TODO: test retrieve list with dummy title
@@ -420,6 +430,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed full update test p3")
 	}
 
 	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1a.ID)).
@@ -430,6 +442,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed retrieve test p3")
 	}
 
 	// test partial update (POST to item endpoint)
@@ -446,6 +460,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed partial update test p4")
 	}
 
 	resp, err = service.Delete(fmt.Sprintf("post/%d", p1a.ID)).
@@ -456,6 +472,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed partial delete test p1a")
 	}
 
 	resp, err = service.Retrieve("posts").
@@ -469,6 +487,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed partial retrieve test after p1a delete")
 	}
 
 	resp, err = service.Delete(fmt.Sprintf("post/%d", p1b.ID)).
@@ -479,6 +499,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed partial delete test p1b")
 	}
 
 	resp, err = service.Retrieve("posts").
@@ -491,6 +513,8 @@ func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User
 	if err != nil {
 		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
+	} else {
+		t.Logf("passed partial retrieve test after p1b delete")
 	}
 
 }
