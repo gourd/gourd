@@ -54,6 +54,33 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 
 			sReq := request.(*httpservice.Request)
+			el := &[]{{ .Type }}{}
+			q := sReq.Query
+
+			// get store
+			s, err := getStore(ctx)
+			if err != nil {
+				serr := store.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error obtaining %T(%v) store (%s)", storeKey, storeKey, err)
+				err = serr
+				return
+			}
+			defer s.Close()
+
+			// find the previous content of the id
+			err = s.Search(q).All(el)
+			if err != nil {
+				serr := store.ErrorInternal
+				serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
+					noun.Singular(), err)
+				err = serr
+				return
+			}
+
+			// tell the inner
+			if len(*el) > 0 {
+				sReq.Previous = &(*el)[0]
+			}
 
 			// enforce agreement on sReq.Payload with previous sReq.Entity
 			httpservice.EnforceUpdate(sReq.Previous, sReq.Payload)
@@ -229,34 +256,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		sReq, err := decodeServiceIDReq(ctx, r)
 		if err != nil {
 			return
-		}
-
-		el := &[]{{ .Type }}{}
-		q := sReq.Query
-
-		// get store
-		s, err := getStore(ctx)
-		if err != nil {
-			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error obtaining %s store (%s)", storeKey, err)
-			err = serr
-			return
-		}
-		defer s.Close()
-
-		// find the previous content of the id
-		err = s.Search(q).All(el)
-		if err != nil {
-			serr := store.ErrorInternal
-			serr.ServerMsg = fmt.Sprintf("error searching %s: %s",
-				noun.Singular(), err)
-			err = serr
-			return
-		}
-
-		// tell the inner
-		if len(*el) > 0 {
-			sReq.Previous = &(*el)[0]
 		}
 
 		sReq.Payload, err = decodeJSONEntity(ctx, r)
