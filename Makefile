@@ -47,7 +47,8 @@ flag.testDeps:
 	go get -u github.com/gourd/kit/context
 	go get -u github.com/gourd/kit/oauth2
 	go get -u github.com/gourd/kit/perm
-	go get -u github.com/yookoala/restit/v1
+	go get -u github.com/go-restit/lzjson
+	go get -u github.com/go-restit/restit/v2
 	touch flag.testDeps
 
 .PHONY: build generate test clean
