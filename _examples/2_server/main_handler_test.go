@@ -16,8 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-restit/lzjson"
+	restit "github.com/go-restit/restit/v2"
 	"github.com/gorilla/pat"
-	restit "github.com/yookoala/restit/v1"
 )
 
 // could be used repeatedly for different unit test
@@ -64,7 +65,7 @@ func dummyNewClient(redirectURI string) *oauth2.Client {
 }
 
 func dummyNewPost() (p Post) {
-	s := rand.NewSource(99)
+	s := rand.NewSource(time.Now().UnixNano())
 	return Post{
 		UID:   rand.New(s).Int31(),
 		Title: fmt.Sprintf("Dummy Post %d", rand.New(s).Int31()),
@@ -92,7 +93,7 @@ func testOAuth2ClientApp(path string) http.Handler {
 }
 
 // test oauth2
-func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token string) {
+func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (user *oauth2.User, token string) {
 
 	// create test client server
 	tcsbase := "/example_app/"
@@ -104,7 +105,7 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 	password := "password"
 
 	// create dummy oauth client and user
-	c, u := func(tcs *httptest.Server, password, redirect string) (*oauth2.Client, *oauth2.User) {
+	c, user := func(tcs *httptest.Server, password, redirect string) (*oauth2.Client, *oauth2.User) {
 
 		// generate dummy user
 		us, err := store.Get(ctx, oauth2.KeyUser)
@@ -181,7 +182,7 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 		log.Printf("Response Body: %#v", bodyDecoded["code"])
 
 		return
-	}(c, u, password, tcs.URL+tcspath)
+	}(c, user, password, tcs.URL+tcspath)
 
 	// quite if error
 	if err != nil {
@@ -239,182 +240,242 @@ func testOAuth2(t *testing.T, ctx context.Context, ts *httptest.Server) (token s
 		return
 	}
 
-	return token
+	return user, token
 
 }
 
 // common rest test
-func testRest(t *testing.T, ts *httptest.Server, token string, proto *ProtoPosts, name, path string) {
+func testRest(t *testing.T, ts *httptest.Server, token string, user *oauth2.User, proto *ProtoPosts, name, path string) {
 
 	// some dummy posts
 	p1a := dummyNewPost()
 	p1b := dummyNewPost()
 
-	// REST API
-	posts := restit.Rest("Post", ts.URL+"/api/posts")
-	post := restit.Rest("Post", ts.URL+"/api/post")
+	// define the path for your handler
+	service := restit.NewHTTPService(ts.URL + "/api")
+
+	equals := func(a interface{}) func(interface{}) error {
+		return func(b interface{}) (err error) {
+
+			// cast a and b back to Post
+			original := a.(Post)
+			val := b.(Post)
+
+			if original.ID != val.ID && original.ID != 0 && val.ID != 0 {
+				// if either ID is 0, do not check id match
+				err = fmt.Errorf("ID not match")
+			} else if want, have := original.UID, val.UID; want != have {
+				err = fmt.Errorf("UID not match: wanted %#v but got %#v", want, have)
+			} else if want, have := original.Title, val.Title; want != have {
+				err = fmt.Errorf("Title not match: wanted %#v but got %#v", want, have)
+			} else if want, have := original.Body, val.Body; want != have {
+				err = fmt.Errorf("Body not match: wanted %#v but got %#v", want, have)
+			} else if want, have := original.Size, val.Size; want != have {
+				err = fmt.Errorf("Size not match: wanted %#v but got %#v", want, have)
+			} else if want, have := original.Date.Unix(), val.Date.Unix(); want != have {
+				err = fmt.Errorf("Date not match: wanted %#v but got %#v", want, have)
+			}
+			return
+		}
+	}
+
+	nthEquals := func(n int, name, desc string, equals func(interface{}) error) restit.Expectation {
+		return restit.Nth(n).Of(name).Is(restit.DescribeJSON(desc, func(node lzjson.Node) (err error) {
+			var returned Post
+			err = node.Unmarshal(&returned)
+			if err != nil {
+				return
+			}
+			return equals(returned)
+		}))
+	}
+
+	pagingAttrIs := func(name string, number int) restit.Expectation {
+		desc := fmt.Sprintf("%#v is %#v", name, number)
+		return restit.Describe(desc, func(ctx context.Context, resp restit.Response) (err error) {
+			root, err := resp.JSON()
+			if err != nil {
+				return
+			}
+
+			paging := root.Get("paging")
+			if want, have := lzjson.TypeObject, paging.Type(); want != have {
+				err = fmt.Errorf("\"paging\" is not a %s but is %s", want, have)
+			}
+
+			numGot := paging.Get(name)
+			if want, have := lzjson.TypeNumber, numGot.Type(); want != have {
+				err = fmt.Errorf("%#v is not a %s but is %s", name, want, have)
+			}
+			if want, have := number, numGot.Int(); want != have {
+				err = fmt.Errorf("%#v is not %#v, but %#v", name, want, have)
+			}
+			return
+		})
+	}
+
+	attrIsEmpty := func(noun string) restit.Expectation {
+		return restit.Describe(noun, func(ctx context.Context, resp restit.Response) (err error) {
+			root, err := resp.JSON()
+			if err != nil {
+				return
+			}
+
+			list := root.Get(noun)
+			if list.Type() != lzjson.TypeArray {
+				err = fmt.Errorf("%#v is not an array", noun)
+			}
+			if want, have := 0, list.Len(); want != have {
+				err = fmt.Errorf("%#v is not %#v, but %#v", noun, want, have)
+			}
+			return
+		})
+	}
 
 	var err error
+	var resp restit.Response
 
-	// test list
-	t0 := posts.Retrieve("").
+	resp, err = service.Retrieve("/posts").
 		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectStatus(http.StatusOK).
-		ExpectResultCount(0)
-	_, err = t0.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(attrIsEmpty("posts")).
+		Expect(pagingAttrIs("limit", 0)).
+		Expect(pagingAttrIs("offset", 0)).
+		Expect(pagingAttrIs("total", 0)).
+		Do()
 	if err != nil {
-		t.Error(err.Error())
-	} else if want, have := http.StatusOK, proto.Status; want != have {
-		t.Errorf("want: %#v, got %#v",
-			want, have)
-		t.FailNow()
-	} else if proto.Posts == nil {
-		t.Errorf("Posts field should be empty array but get \"%#v\"",
-			proto.Posts)
-		t.FailNow()
-	}
-
-	// test paging variables
-	if v, ok := proto.Paging["total"]; !ok {
-		t.Errorf("paging.total not found")
-	} else if want, have := 0, v; want != have {
-		t.Errorf("paging.total expect: %#v, got: %#v", want, have)
-	}
-	if v, ok := proto.Paging["limit"]; !ok {
-		t.Errorf("paging.limit not found")
-	} else if want, have := 0, v; want != have {
-		t.Errorf("paging.limit expect: %#v, got: %#v", want, have)
-	}
-	if v, ok := proto.Paging["offset"]; !ok {
-		t.Errorf("paging.offset not found")
-	} else if want, have := 0, v; want != have {
-		t.Errorf("paging.offset expect: %#v, got: %#v", want, have)
-	}
-
-	// test create a
-	t1a := posts.Create(&p1a).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCount(1).
-		ExpectResultsValid().
-		ExpectResultNth(0, p1a)
-	_, err = t1a.Run()
-	p2ap, err := proto.GetNth(0)
-	if err != nil {
-		t.Error(err.Error())
-		t.FailNow()
-	}
-	p2a := p2ap.(Post) // created post
-
-	// test create a
-	t1b := posts.Create(&p1b).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCount(1).
-		ExpectResultsValid().
-		ExpectResultNth(0, p1b)
-	_, err = t1b.Run()
-	p2bp, err := proto.GetNth(0)
-	if err != nil {
-		t.Error(err.Error())
-		t.FailNow()
-	}
-	p2b := p2bp.(Post) // created post
-
-	// test retrieve single
-	t2a := post.Retrieve(fmt.Sprintf("%d", p2a.ID)).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCountNot(0)
-	_, err = t2a.Run()
-	if err != nil {
-		t.Error(err.Error())
-	}
-	t2b := post.Retrieve(fmt.Sprintf("%d", p2b.ID)).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCountNot(0)
-	_, err = t2b.Run()
-	if err != nil {
+		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	}
 
-	// test retrieve list
-	t2l := posts.Retrieve("").
+	resp, err = service.Create(p1a, "posts").
 		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCount(2)
-	_, err = t2l.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "created from p1a", equals(p1a))).
+		Do()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	} else {
+		root, _ := resp.JSON()
+		root.Get("posts").GetN(0).Unmarshal(&p1a)
 	}
 
-	// test paging variables
-	if v, ok := proto.Paging["total"]; !ok {
-		t.Errorf("paging.total not found")
-	} else if want, have := 2, v; want != have {
-		t.Errorf("paging.total expect: %#v, got: %#v", want, have)
+	resp, err = service.Create(p1b, "posts").
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "created from p1a", equals(p1b))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	} else {
+		root, _ := resp.JSON()
+		root.Get("posts").GetN(0).Unmarshal(&p1b)
 	}
-	if v, ok := proto.Paging["limit"]; !ok {
-		t.Errorf("paging.limit not found")
-	} else if want, have := 0, v; want != have {
-		t.Errorf("paging.limit expect: %#v, got: %#v", want, have)
+
+	resp, err = service.Retrieve("posts").
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(pagingAttrIs("limit", 0)).
+		Expect(pagingAttrIs("offset", 0)).
+		Expect(pagingAttrIs("total", 2)).
+		Expect(nthEquals(0, "posts", "equals p1a", equals(p1a))).
+		Expect(nthEquals(1, "posts", "equals p1b", equals(p1b))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
 	}
-	if v, ok := proto.Paging["offset"]; !ok {
-		t.Errorf("paging.offset not found")
-	} else if want, have := 0, v; want != have {
-		t.Errorf("paging.offset expect: %#v, got: %#v", want, have)
+
+	t.Logf("p1a.ID = %#v", p1a.ID)
+	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1a.ID)).
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p1a", equals(p1a))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	}
+
+	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1b.ID)).
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p1b", equals(p1b))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
 	}
 
 	// TODO: test retrieve list with dummy title
 
-	// test update, then retrieve single to compare
 	p3 := dummyNewPost()
-	p3.ID = p2a.ID
-	t3 := post.Update(fmt.Sprintf("%d", p3.ID), p3).
+	p3.ID = p1a.ID
+	resp, err = service.Update(p3, fmt.Sprintf("post/%d", p1a.ID)).
 		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectStatus(200)
-	_, err = t3.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p3", equals(p3))).
+		Do()
 	if err != nil {
-		t.Error(err.Error())
-	}
-	t4 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
-		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectStatus(200). // Success
-		ExpectResultCount(1).
-		ExpectResultNth(0, p3)
-	_, err = t4.Run()
-	if err != nil {
+		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	}
 
-	// test delete
-	t5 := post.Delete(fmt.Sprintf("%d", p3.ID)).
+	resp, err = service.Retrieve(fmt.Sprintf("post/%d", p1a.ID)).
 		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectStatus(200)
-	_, err = t5.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p3", equals(p3))).
+		Do()
 	if err != nil {
+		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	}
-	t6 := post.Retrieve(fmt.Sprintf("%d", p3.ID)).
+
+	resp, err = service.Delete(fmt.Sprintf("post/%d", p1a.ID)).
 		AddHeader("Authority", token).
-		WithResponseAs(proto) // Not found anymore
-	_, err = t6.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p3", equals(p3))).
+		Do()
 	if err != nil {
+		t.Logf("raw body: %s", resp)
 		t.Error(err.Error())
 	}
-	// test retrieve list
-	t6l := posts.Retrieve("").
+
+	resp, err = service.Retrieve("posts").
 		AddHeader("Authority", token).
-		WithResponseAs(proto).
-		ExpectResultCount(1)
-	_, err = t6l.Run()
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(pagingAttrIs("limit", 0)).
+		Expect(pagingAttrIs("offset", 0)).
+		Expect(pagingAttrIs("total", 1)).
+		Expect(nthEquals(0, "posts", "equals p1b", equals(p1b))).
+		Do()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	}
+
+	resp, err = service.Delete(fmt.Sprintf("post/%d", p1b.ID)).
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(nthEquals(0, "posts", "equals p1b", equals(p1b))).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
+	}
+
+	resp, err = service.Retrieve("posts").
+		AddHeader("Authority", token).
+		Expect(restit.StatusCodeIs(http.StatusOK)).
+		Expect(pagingAttrIs("limit", 0)).
+		Expect(pagingAttrIs("offset", 0)).
+		Expect(pagingAttrIs("total", 0)).
+		Do()
+	if err != nil {
+		t.Logf("raw body: %s", resp)
+		t.Error(err.Error())
 	}
 
 }
@@ -427,12 +488,12 @@ func TestMainPosts(t *testing.T) {
 
 	ctx := store.WithFactory(context.Background(), factory)
 
-	token := testOAuth2(t, ctx, ts)
+	user, token := testOAuth2(t, ctx, ts)
 	if token == "" {
 		t.Error("Failed to obtain security token")
 		t.FailNow()
 		return
 	}
 	log.Printf("token: %s", token)
-	testRest(t, ts, token, &ProtoPosts{}, "Post", "/api/posts")
+	testRest(t, ts, token, user, &ProtoPosts{}, "Post", "/api/posts")
 }

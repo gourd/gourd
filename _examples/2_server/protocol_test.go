@@ -1,5 +1,6 @@
 package main
 
+/*
 import (
 	restit "github.com/yookoala/restit/v1"
 	"testing"
@@ -10,3 +11,4 @@ func TestProtoPosts(t *testing.T) {
 	p.Count()
 	t.Log("ProtoPosts implements restit.Response")
 }
+*/

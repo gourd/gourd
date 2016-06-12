@@ -7,6 +7,11 @@ test: message generate build
 	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
 	go test -v
 
+test-dirty:
+	which gourd
+	sqlite3 data/sqlite3.db < data/schema.sqlite3.sql
+	go test -v
+
 clean:
 	rm -f *_store.go
 	rm -f *_endpoints.go
