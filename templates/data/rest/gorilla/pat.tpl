@@ -267,7 +267,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		}
 
 		// parse sort parameter
-		sortStr := r.FormValue("sorts")
+		sortStr := r.FormValue("_sort")
 		if sortStr != "" {
 			sorts := strings.Split(sortStr, ",")
 			for _, sort := range sorts {
@@ -277,8 +277,8 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 		// parse paging request parameter
 		offset, limit := func(r *http.Request) (o, l uint64) {
-			ostr := r.FormValue("offset")
-			lstr := r.FormValue("limit")
+			ostr := r.FormValue("_offset")
+			lstr := r.FormValue("_limit")
 			if ostr != "" {
 				if ot, err := strconv.ParseUint(ostr, 10, 64); err == nil {
 					o = ot
