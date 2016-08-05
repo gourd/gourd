@@ -238,13 +238,20 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		return
 	}
 
-	decodeJSONEntity := func(ctx context.Context, r *http.Request) (entity *{{ .Type }}, err error) {
+	contextDecodeBody := func(ctx context.Context, r *http.Request) (entity *{{ .Type }}, err error) {
+
 		// allocate entity
 		entity = &{{ .Type }}{}
 
-		// decode request
-		dec := json.NewDecoder(r.Body)
-		err = dec.Decode(entity)
+		if dec, ok := httpservice.DecoderFrom(ctx); ok {
+			// allocate entity
+			err = dec.Decode(entity)
+			if err != nil {
+				return
+			}
+		} else {
+			err = fmt.Errorf("decoder not found in context")
+		}
 		return
 	}
 
@@ -303,7 +310,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 	// decodeJSONReq returns a DecodeRequestFunc that decode request
 	// into allocated memory structure
 	var decodeJSONReq httptransport.DecodeRequestFunc = func(ctx context.Context, r *http.Request) (request interface{}, err error) {
-		return decodeJSONEntity(ctx, r)
+		return contextDecodeBody(ctx, r)
 	}
 
 	// decodeUpdate returns a DecodeRequestFunc that decode request
@@ -314,7 +321,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			return
 		}
 
-		sReq.Payload, err = decodeJSONEntity(ctx, r)
+		sReq.Payload, err = contextDecodeBody(ctx, r)
 		if err != nil {
 			return
 		}
