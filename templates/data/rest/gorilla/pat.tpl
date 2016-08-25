@@ -119,10 +119,11 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 
 			// tell the inner
 			if len(*el) > 0 {
-				sReq.Previous = &(*el)[0]
+				prev := (*el)[0]
+				sReq.Previous = &prev
 			}
 
-			toUpdate := &(*el)[0]
+			toUpdate := (*el)[0]
 
 			if dec, ok := httpservice.PartialDecoderFrom(ctx); ok {
 				err = dec.Decode(&toUpdate)
@@ -132,9 +133,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 					err = serr
 					return
 				}
-				sReq.Payload = toUpdate
-
-				log.Printf("decode success!! %#v", sReq.Payload)
+				sReq.Payload = &toUpdate
 			}
 
 			// enforce agreement on sReq.Payload with previous 	sReq.Entity
@@ -339,12 +338,6 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 		if err != nil {
 			return
 		}
-
-		/*
-		buf := bytes.NewBuffer([]byte{})
-		buf.ReadFrom(r.Body)
-		sReq.Payload = buf
-		*/
 
 		request = sReq
 		return
