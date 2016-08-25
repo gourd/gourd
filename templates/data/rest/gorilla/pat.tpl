@@ -128,9 +128,7 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			if dec, ok := httpservice.PartialDecoderFrom(ctx); ok {
 				err = dec.Decode(&toUpdate)
 				if err != nil {
-					serr := store.Error(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
-					serr.ServerMsg = fmt.Sprintf("error decoding json request (%s)", err)
-					err = serr
+					// return validataion error directly
 					return
 				}
 				sReq.Payload = &toUpdate
