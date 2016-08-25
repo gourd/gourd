@@ -10,8 +10,6 @@
 	"github.com/gourd/kit/store"
 	"golang.org/x/net/context"
 
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -125,15 +123,19 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			}
 
 			toUpdate := &(*el)[0]
-			buf := sReq.Payload.(*bytes.Buffer)
-			err = json.Unmarshal(buf.Bytes(), &toUpdate)
-			if err != nil {
-				serr := store.Error(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
-				serr.ServerMsg = fmt.Sprintf("error decoding json request (%s)", err)
-				err = serr
-				return
+
+			if dec, ok := httpservice.PartialDecoderFrom(ctx); ok {
+				err = dec.Decode(&toUpdate)
+				if err != nil {
+					serr := store.Error(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+					serr.ServerMsg = fmt.Sprintf("error decoding json request (%s)", err)
+					err = serr
+					return
+				}
+				sReq.Payload = toUpdate
+
+				log.Printf("decode success!! %#v", sReq.Payload)
 			}
-			sReq.Payload = toUpdate
 
 			// enforce agreement on sReq.Payload with previous 	sReq.Entity
 			httpservice.EnforceUpdate(sReq.Previous, sReq.Payload)
@@ -338,9 +340,11 @@ func {{ .Store }}Services(paths httpservice.Paths, endpoints map[string]endpoint
 			return
 		}
 
+		/*
 		buf := bytes.NewBuffer([]byte{})
 		buf.ReadFrom(r.Body)
 		sReq.Payload = buf
+		*/
 
 		request = sReq
 		return
